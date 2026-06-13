@@ -307,7 +307,7 @@ function downloadPlugin() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'CodeAssist-Plugin-v1.0.0.txt';
+    a.download = 'CodeAssist-Plugin-v1.0.0.lua';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
