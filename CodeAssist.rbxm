@@ -1,0 +1,2449 @@
+<roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4">
+	<Meta name="ExplicitAutoJoints">true</Meta>
+	<External>nil</External>
+	<External>nil</External>
+	<Item class="Plugin" referent="RBXM_123456789">
+		<Properties>
+			<string name="Name">CodeAssist</string>
+			<bool name="Disabled">false</bool>
+			<string name="Description">Advanced AI Assistant for Roblox Developers - Generate complete games with AI</string>
+			<string name="Version">1.0.0</string>
+			<string name="Author">CodeAssist Team</string>
+			<Content>
+				<url name="Icon">rbxassetid://0</url>
+			</Content>
+		</Properties>
+		<Item class="ModuleScript" referent="RBXM_CodeAssist">
+			<Properties>
+				<string name="Name">CodeAssist</string>
+				<ProtectedString name="Source"><![CDATA[--[[
+    CodeAssist - Advanced AI Assistant for Roblox Developers
+    Version: 1.0.0
+    Author: CodeAssist Team
+    
+    This plugin provides AI-powered code generation, bug detection,
+    optimization, and intelligent assistance for Roblox development.
+]]
+
+-- Plugin Information
+local PluginName = "CodeAssist"
+local PluginVersion = "1.0.0"
+
+-- Services
+local Plugin = plugin or getfenv().plugin
+if not Plugin then
+    error("CodeAssist must be run as a Roblox Studio plugin")
+end
+
+local HttpService = game:GetService("HttpService")
+local ChangeHistoryService = game:GetService("ChangeHistoryService")
+local Selection = game:GetService("Selection")
+local ScriptEditorService = game:GetService("ScriptEditorService")
+local Players = game:GetService("Players")
+
+-- Plugin UI Setup
+local Toolbar = Plugin:CreateToolbar("CodeAssist")
+local DockWidgetPluginGuiInfo = DockWidgetPluginGuiInfo.new(
+    Enum.InitialDockState.Right,
+    false,
+    false,
+    400,
+    600,
+    400,
+    600
+)
+
+local CodeAssistWidget = Plugin:CreateDockWidgetPluginGui(
+    "CodeAssistWidget",
+    DockWidgetPluginGuiInfo
+)
+
+CodeAssistWidget.Title = "CodeAssist AI"
+CodeAssistWidget.Name = "CodeAssistWidget"
+
+-- Create UI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = CodeAssistWidget
+
+-- Main Frame
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(1, 0, 1, 0)
+MainFrame.Position = UDim2.new(0, 0, 0, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = ScreenGui
+
+-- Header
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1, 0, 0, 60)
+Header.BackgroundColor3 = Color3.fromRGB(0, 102, 255)
+Header.BorderSizePixel = 0
+Header.Parent = MainFrame
+
+local HeaderText = Instance.new("TextLabel")
+HeaderText.Size = UDim2.new(1, -20, 1, 0)
+HeaderText.Position = UDim2.new(0, 10, 0, 0)
+HeaderText.BackgroundTransparency = 1
+HeaderText.Text = "CodeAssist AI"
+HeaderText.TextColor3 = Color3.fromRGB(255, 255, 255)
+HeaderText.TextSize = 24
+HeaderText.Font = Enum.Font.GothamBold
+HeaderText.TextXAlignment = Enum.TextXAlignment.Left
+HeaderText.Parent = Header
+
+-- Content Frame
+local ContentFrame = Instance.new("Frame")
+ContentFrame.Size = UDim2.new(1, -20, 1, -70)
+ContentFrame.Position = UDim2.new(0, 10, 0, 65)
+ContentFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+ContentFrame.BorderSizePixel = 0
+ContentFrame.Parent = MainFrame
+
+-- Input Section
+local InputLabel = Instance.new("TextLabel")
+InputLabel.Size = UDim2.new(1, 0, 0, 30)
+InputLabel.Position = UDim2.new(0, 0, 0, 10)
+InputLabel.BackgroundTransparency = 1
+InputLabel.Text = "Describe what you want to create:"
+InputLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+LabelTextSize = 14
+InputLabel.Font = Enum.Font.Gotham
+InputLabel.TextXAlignment = Enum.TextXAlignment.Left
+InputLabel.Parent = ContentFrame
+
+local InputBox = Instance.new("TextBox")
+InputBox.Size = UDim2.new(1, 0, 0, 100)
+InputBox.Position = UDim2.new(0, 0, 0, 45)
+InputBox.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+InputBox.BorderSizePixel = 0
+InputBox.Text = ""
+InputBox.PlaceholderText = "e.g., Create a player health system with regeneration..."
+InputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+InputBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+InputBox.TextSize = 14
+InputBox.Font = Enum.Font.Gotham
+InputBox.TextXAlignment = Enum.TextXAlignment.Left
+InputBox.TextYAlignment = Enum.TextYAlignment.Top
+InputBox.ClearTextOnFocus = false
+InputBox.MultiLine = true
+InputBox.Parent = ContentFrame
+
+local InputPadding = Instance.new("UIPadding")
+InputPadding.PaddingTop = UDim.new(0, 10)
+InputPadding.PaddingLeft = UDim.new(0, 10)
+InputPadding.PaddingRight = UDim.new(0, 10)
+InputPadding.Parent = InputBox
+
+-- Generate Button
+local GenerateButton = Instance.new("TextButton")
+GenerateButton.Size = UDim2.new(1, 0, 0, 40)
+GenerateButton.Position = UDim2.new(0, 0, 0, 155)
+GenerateButton.BackgroundColor3 = Color3.fromRGB(0, 102, 255)
+GenerateButton.BorderSizePixel = 0
+GenerateButton.Text = "Generate Code"
+GenerateButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+GenerateButton.TextSize = 16
+GenerateButton.Font = Enum.Font.GothamBold
+GenerateButton.Parent = ContentFrame
+
+local GenerateCorner = Instance.new("UICorner")
+GenerateCorner.CornerRadius = UDim.new(0, 8)
+GenerateCorner.Parent = GenerateButton
+
+-- Output Section
+local OutputLabel = Instance.new("TextLabel")
+OutputLabel.Size = UDim2.new(1, 0, 0, 30)
+OutputLabel.Position = UDim2.new(0, 0, 0, 205)
+OutputLabel.BackgroundTransparency = 1
+OutputLabel.Text = "Generated Code:"
+OutputLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+OutputLabel.TextSize = 14
+OutputLabel.Font = Enum.Font.Gotham
+OutputLabel.TextXAlignment = Enum.TextXAlignment.Left
+OutputLabel.Parent = ContentFrame
+
+local OutputBox = Instance.new("TextBox")
+OutputBox.Size = UDim2.new(1, 0, 1, -250)
+OutputBox.Position = UDim2.new(0, 0, 0, 240)
+OutputBox.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+OutputBox.BorderSizePixel = 0
+OutputBox.Text = ""
+OutputBox.TextColor3 = Color3.fromRGB(220, 220, 220)
+OutputBox.TextSize = 13
+OutputBox.Font = Enum.Font.Code
+OutputBox.TextXAlignment = Enum.TextXAlignment.Left
+OutputBox.TextYAlignment = Enum.TextYAlignment.Top
+OutputBox.ClearTextOnFocus = false
+OutputBox.MultiLine = true
+OutputBox.Parent = ContentFrame
+
+local OutputPadding = Instance.new("UIPadding")
+OutputPadding.PaddingTop = UDim.new(0, 10)
+OutputPadding.PaddingLeft = UDim.new(0, 10)
+OutputPadding.PaddingRight = UDim.new(0, 10)
+OutputPadding.Parent = OutputBox
+
+-- Action Buttons Frame
+local ActionButtonsFrame = Instance.new("Frame")
+ActionButtonsFrame.Size = UDim2.new(1, 0, 0, 120)
+ActionButtonsFrame.Position = UDim2.new(0, 0, 1, -125)
+ActionButtonsFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+ActionButtonsFrame.BorderSizePixel = 0
+ActionButtonsFrame.Parent = ContentFrame
+
+-- Advanced AI Buttons
+local FullGameButton = Instance.new("TextButton")
+FullGameButton.Size = UDim2.new(1, -10, 0, 35)
+FullGameButton.Position = UDim2.new(0, 5, 0, 5)
+FullGameButton.BackgroundColor3 = Color3.fromRGB(0, 102, 255)
+FullGameButton.BorderSizePixel = 0
+FullGameButton.Text = "Generate Full Game"
+FullGameButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+FullGameButton.TextSize = 14
+FullGameButton.Font = Enum.Font.GothamBold
+FullGameButton.Parent = ActionButtonsFrame
+
+local FullGameCorner = Instance.new("UICorner")
+FullGameCorner.CornerRadius = UDim.new(0, 6)
+FullGameCorner.Parent = FullGameButton
+
+local ArchitectureButton = Instance.new("TextButton")
+ArchitectureButton.Size = UDim2.new(0.48, -5, 0, 35)
+ArchitectureButton.Position = UDim2.new(0, 5, 0, 45)
+ArchitectureButton.BackgroundColor3 = Color3.fromRGB(100, 50, 200)
+ArchitectureButton.BorderSizePixel = 0
+ArchitectureButton.Text = "Game Architecture"
+ArchitectureButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ArchitectureButton.TextSize = 14
+ArchitectureButton.Font = Enum.Font.Gotham
+ArchitectureButton.Parent = ActionButtonsFrame
+
+local ArchCorner = Instance.new("UICorner")
+ArchCorner.CornerRadius = UDim.new(0, 6)
+ArchCorner.Parent = ArchitectureButton
+
+local MultiplayerButton = Instance.new("TextButton")
+MultiplayerButton.Size = UDim2.new(0.48, -5, 0, 35)
+MultiplayerButton.Position = UDim2.new(0.52, 5, 0, 45)
+MultiplayerButton.BackgroundColor3 = Color3.fromRGB(200, 100, 50)
+MultiplayerButton.BorderSizePixel = 0
+MultiplayerButton.Text = "Multiplayer System"
+MultiplayerButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+MultiplayerButton.TextSize = 14
+MultiplayerButton.Font = Enum.Font.Gotham
+MultiplayerButton.Parent = ActionButtonsFrame
+
+local MultiCorner = Instance.new("UICorner")
+MultiCorner.CornerRadius = UDim.new(0, 6)
+MultiCorner.Parent = MultiplayerButton
+
+local CopyButton = Instance.new("TextButton")
+CopyButton.Size = UDim2.new(0.48, -5, 0, 30)
+CopyButton.Position = UDim2.new(0, 5, 0, 85)
+CopyButton.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+CopyButton.BorderSizePixel = 0
+CopyButton.Text = "Copy to Clipboard"
+CopyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CopyButton.TextSize = 13
+CopyButton.Font = Enum.Font.Gotham
+CopyButton.Parent = ActionButtonsFrame
+
+local CopyCorner = Instance.new("UICorner")
+CopyCorner.CornerRadius = UDim.new(0, 6)
+CopyCorner.Parent = CopyButton
+
+local InsertButton = Instance.new("TextButton")
+InsertButton.Size = UDim2.new(0.48, -5, 0, 30)
+InsertButton.Position = UDim2.new(0.52, 5, 0, 85)
+InsertButton.BackgroundColor3 = Color3.fromRGB(0, 150, 100)
+InsertButton.BorderSizePixel = 0
+InsertButton.Text = "Insert to Script"
+InsertButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+InsertButton.TextSize = 13
+InsertButton.Font = Enum.Font.Gotham
+InsertButton.Parent = ActionButtonsFrame
+
+local InsertCorner = Instance.new("UICorner")
+InsertCorner.CornerRadius = UDim.new(0, 6)
+InsertCorner.Parent = InsertButton
+
+-- Toolbar Buttons
+local GenerateButtonToolbar = Toolbar:CreateButton("Generate Code", "Generate AI code", "rbxassetid://0")
+local OptimizeButton = Toolbar:CreateButton("Optimize Code", "Optimize selected code", "rbxassetid://0")
+local FixBugsButton = Toolbar:CreateButton("Fix Bugs", "Fix bugs in selected code", "rbxassetid://0")
+local ExplainButton = Toolbar:CreateButton("Explain Code", "Explain selected code", "rbxassetid://0")
+local AnalyzeButton = Toolbar:CreateButton("Analyze Project", "Analyze entire project", "rbxassetid://0")
+local FullGameToolbar = Toolbar:CreateButton("Full Game", "Generate complete game with AI", "rbxassetid://0")
+
+-- AI Service Module
+local AIService = {}
+
+-- Load Advanced AI Module
+local AdvancedAI = require(script.Parent.AdvancedAI)
+
+-- Initialize Advanced AI
+AdvancedAI:LoadConfig()
+
+-- Load configuration
+local function LoadConfig()
+    local config = {
+        apiKey = AdvancedAI.Config.apiKey or "",
+        apiUrl = AdvancedAI.Config.apiUrl,
+        model = AdvancedAI.Config.model,
+        temperature = AdvancedAI.Config.temperature,
+        maxTokens = AdvancedAI.Config.maxTokens,
+        topP = AdvancedAI.Config.topP
+    }
+    return config
+end
+
+AIService.Config = LoadConfig()
+
+-- AI Functions - Now using AdvancedAI module
+function AIService:GenerateCode(prompt, context)
+    local fullPrompt = prompt
+    if context then
+        fullPrompt = fullPrompt .. "\n\nPROJECT CONTEXT:\n" .. context
+    end
+    
+    return AdvancedAI:GenerateSystem("custom", fullPrompt)
+end
+
+function AIService:GenerateFullGame(gameDescription, requirements)
+    return AdvancedAI:GenerateFullGame(gameDescription, requirements)
+end
+
+function AIService:GenerateGameArchitecture(gameConcept)
+    return AdvancedAI:GenerateGameArchitecture(gameConcept)
+end
+
+function AIService:OptimizeCode(code)
+    return AdvancedAI:ReviewAndImproveCode(code, "performance optimization")
+end
+
+function AIService:FixBugs(code)
+    return AdvancedAI:ReviewAndImproveCode(code, "bug fixing and error handling")
+end
+
+function AIService:ExplainCode(code)
+    local systemPrompt = AdvancedAI:BuildExpertSystemPrompt()
+    local userPrompt = "Explain this Roblox Lua code in detail:\n\n" .. code
+    
+    return AdvancedAI:CallGroqAPI(systemPrompt, userPrompt)
+end
+
+function AIService:AnalyzeProject(projectStructure)
+    return AdvancedAI:GenerateSystem("project analysis", projectStructure)
+end
+
+function AIService:GenerateMultiplayer(playerCount, gameType)
+    return AdvancedAI:GenerateMultiplayerArchitecture(playerCount, gameType)
+end
+
+function AIService:GenerateMonetization(monetizationType, targetRevenue)
+    return AdvancedAI:GenerateMonetizationSystem(monetizationType, targetRevenue)
+end
+
+-- Context Analysis
+local function AnalyzeProjectContext()
+    local context = "Current Project Structure:\n"
+    
+    for _, child in ipairs(game.Workspace:GetChildren()) do
+        context = context .. "- " .. child:GetFullName() .. " (" .. child.ClassName .. ")\n"
+    end
+    
+    local scripts = {}
+    for _, obj in ipairs(game:GetDescendants()) do
+        if obj:IsA("Script") or obj:IsA("LocalScript") or obj:IsA("ModuleScript") then
+            table.insert(scripts, obj:GetFullName())
+        end
+    end
+    
+    if #scripts > 0 then
+        context = context .. "\nScripts found:\n"
+        for _, scriptPath in ipairs(scripts) do
+            context = context .. "- " .. scriptPath .. "\n"
+        end
+    end
+    
+    return context
+end
+
+-- UI Event Handlers
+GenerateButton.MouseButton1Click:Connect(function()
+    local userInput = InputBox.Text
+    if userInput == "" or userInput == " " then
+        OutputBox.Text = "Please enter a description of what you want to create."
+        return
+    end
+    
+    OutputBox.Text = "Generating code... Please wait."
+    GenerateButton.Text = "Generating..."
+    GenerateButton.Active = false
+    
+    local context = AnalyzeProjectContext()
+    local success, result = AIService:GenerateCode(userInput, context)
+    
+    if success then
+        OutputBox.Text = result
+    else
+        OutputBox.Text = "Error: " .. (result or "Unknown error")
+    end
+    
+    GenerateButton.Text = "Generate Code"
+    GenerateButton.Active = true
+end)
+
+CopyButton.MouseButton1Click:Connect(function()
+    if OutputBox.Text ~= "" then
+        HttpService:ClipboardSet(OutputBox.Text)
+        CopyButton.Text = "Copied!"
+        task.wait(1)
+        CopyButton.Text = "Copy to Clipboard"
+    end
+end)
+
+InsertButton.MouseButton1Click:Connect(function()
+    local selected = Selection:Get()
+    if #selected > 0 then
+        local selectedObject = selected[1]
+        if selectedObject:IsA("Script") or selectedObject:IsA("LocalScript") or selectedObject:IsA("ModuleScript") then
+            ChangeHistoryService:SetWaypoint("Before CodeAssist Insert")
+            selectedObject.Source = selectedObject.Source .. "\n\n" .. OutputBox.Text
+            ChangeHistoryService:SetWaypoint("After CodeAssist Insert")
+            InsertButton.Text = "Inserted!"
+            task.wait(1)
+            InsertButton.Text = "Insert to Script"
+        else
+            warn("Selected object is not a script")
+        end
+    else
+        warn("No object selected")
+    end
+end)
+
+-- Advanced AI Button Handlers
+FullGameButton.MouseButton1Click:Connect(function()
+    local gameDescription = InputBox.Text
+    if gameDescription == "" or gameDescription == " " then
+        OutputBox.Text = "Please describe the game you want to create."
+        return
+    end
+    
+    OutputBox.Text = "Generating complete game... This may take a while."
+    FullGameButton.Text = "Generating..."
+    FullGameButton.Active = false
+    
+    local requirements = "Production-ready, optimized for performance, includes multiplayer support, monetization systems, and complete UI"
+    local success, result = AIService:GenerateFullGame(gameDescription, requirements)
+    
+    if success then
+        OutputBox.Text = result
+    else
+        OutputBox.Text = "Error: " .. (result or "Unknown error")
+    end
+    
+    FullGameButton.Text = "Generate Full Game"
+    FullGameButton.Active = true
+end)
+
+ArchitectureButton.MouseButton1Click:Connect(function()
+    local gameConcept = InputBox.Text
+    if gameConcept == "" or gameConcept == " " then
+        OutputBox.Text = "Please describe your game concept for architecture design."
+        return
+    end
+    
+    OutputBox.Text = "Designing game architecture..."
+    ArchitectureButton.Text = "Designing..."
+    ArchitectureButton.Active = false
+    
+    local success, result = AIService:GenerateGameArchitecture(gameConcept)
+    
+    if success then
+        OutputBox.Text = result
+    else
+        OutputBox.Text = "Error: " .. (result or "Unknown error")
+    end
+    
+    ArchitectureButton.Text = "Game Architecture"
+    ArchitectureButton.Active = true
+end)
+
+MultiplayerButton.MouseButton1Click:Connect(function()
+    local gameType = InputBox.Text
+    if gameType == "" or gameType == " " then
+        OutputBox.Text = "Please describe your game type for multiplayer architecture."
+        return
+    end
+    
+    OutputBox.Text = "Generating multiplayer system..."
+    MultiplayerButton.Text = "Generating..."
+    MultiplayerButton.Active = false
+    
+    local playerCount = "1000+ concurrent players"
+    local success, result = AIService:GenerateMultiplayer(playerCount, gameType)
+    
+    if success then
+        OutputBox.Text = result
+    else
+        OutputBox.Text = "Error: " .. (result or "Unknown error")
+    end
+    
+    MultiplayerButton.Text = "Multiplayer System"
+    MultiplayerButton.Active = true
+end)
+
+-- Toolbar Button Handlers
+GenerateButtonToolbar.Click:Connect(function()
+    CodeAssistWidget.Enabled = not CodeAssistWidget.Enabled
+end)
+
+OptimizeButton.Click:Connect(function()
+    local selected = Selection:Get()
+    if #selected > 0 then
+        local selectedObject = selected[1]
+        if selectedObject:IsA("Script") or selectedObject:IsA("LocalScript") or selectedObject:IsA("ModuleScript") then
+            local code = selectedObject.Source
+            OutputBox.Text = "Optimizing code..."
+            local success, result = AIService:OptimizeCode(code)
+            if success then
+                OutputBox.Text = result
+            else
+                OutputBox.Text = "Error: " .. (result or "Unknown error")
+            end
+            CodeAssistWidget.Enabled = true
+        end
+    end
+end)
+
+FixBugsButton.Click:Connect(function()
+    local selected = Selection:Get()
+    if #selected > 0 then
+        local selectedObject = selected[1]
+        if selectedObject:IsA("Script") or selectedObject:IsA("LocalScript") or selectedObject:IsA("ModuleScript") then
+            local code = selectedObject.Source
+            OutputBox.Text = "Fixing bugs..."
+            local success, result = AIService:FixBugs(code)
+            if success then
+                OutputBox.Text = result
+            else
+                OutputBox.Text = "Error: " .. (result or "Unknown error")
+            end
+            CodeAssistWidget.Enabled = true
+        end
+    end
+end)
+
+ExplainButton.Click:Connect(function()
+    local selected = Selection:Get()
+    if #selected > 0 then
+        local selectedObject = selected[1]
+        if selectedObject:IsA("Script") or selectedObject:IsA("LocalScript") or selectedObject:IsA("ModuleScript") then
+            local code = selectedObject.Source
+            OutputBox.Text = "Explaining code..."
+            local success, result = AIService:ExplainCode(code)
+            if success then
+                OutputBox.Text = result
+            else
+                OutputBox.Text = "Error: " .. (result or "Unknown error")
+            end
+            CodeAssistWidget.Enabled = true
+        end
+    end
+end)
+
+AnalyzeButton.Click:Connect(function()
+    local context = AnalyzeProjectContext()
+    OutputBox.Text = "Analyzing project..."
+    local success, result = AIService:AnalyzeProject(context)
+    if success then
+        OutputBox.Text = result
+    else
+        OutputBox.Text = "Error: " .. (result or "Unknown error")
+    end
+    CodeAssistWidget.Enabled = true
+end)
+
+FullGameToolbar.Click:Connect(function()
+    CodeAssistWidget.Enabled = true
+    FullGameButton:Activate()
+end)
+
+-- Plugin Cleanup
+Plugin.Unloading:Connect(function()
+    -- Cleanup code here
+end)
+
+print("CodeAssist Plugin Loaded Successfully!")
+print("Version: " .. PluginVersion)]]></ProtectedString>
+			</Properties>
+		</Item>
+		<Item class="ModuleScript" referent="RBXM_AdvancedAI">
+			<Properties>
+				<string name="Name">AdvancedAI</string>
+				<ProtectedString name="Source"><![CDATA[--[[
+    CodeAssist Advanced AI Module
+    Real AI-powered code generation using Groq API for complex Roblox development
+]]
+
+local HttpService = game:GetService("HttpService")
+
+local AdvancedAI = {}
+
+-- AI Configuration
+AdvancedAI.Config = {
+    apiUrl = "https://api.groq.com/openai/v1/chat/completions",
+    model = "llama-3.1-70b-versatile",
+    temperature = 0.7,
+    maxTokens = 8192,
+    topP = 0.9,
+    apiKey = "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"
+}
+
+-- Load API key from settings
+function AdvancedAI:LoadConfig()
+    local Plugin = plugin or getfenv().plugin
+    if Plugin then
+        local success, apiKey = pcall(function()
+            return Plugin:GetSetting("CodeAssist_APIKey")
+        end)
+        if success and apiKey then
+            self.Config.apiKey = apiKey
+            return true
+        end
+    end
+    return false
+end
+
+-- Enhanced System Prompt for Roblox Expert AI
+function AdvancedAI:BuildExpertSystemPrompt()
+    return [[You are the world's foremost Roblox development expert with 15+ years of experience. You have worked on:
+- Top Roblox games with 10M+ daily active users
+- Enterprise-scale systems handling millions of concurrent players
+- Roblox internal tools and platform development
+- Teaching Roblox development at universities
+- Creating best practices adopted by the entire community
+
+Your expertise encompasses:
+
+ULTIMATE ROBLOX PLATFORM MASTERY:
+- Every single Roblox service (70+ services) with API-level precision
+- All classes, methods, properties, events, enums, and their behaviors
+- Internal Roblox engine knowledge and limitations
+- undocumented APIs and advanced techniques
+- Memory management and garbage collection internals
+- Network replication deep understanding
+- Physics engine behavior at scale
+- Rendering pipeline optimization
+- Cross-platform performance characteristics
+- Studio internal architecture and tooling
+
+GAME DEVELOPMENT EXCELLENCE:
+- Architectural patterns for 100M+ player games
+- Distributed systems across multiple servers
+- Real-time synchronization at global scale
+- Advanced combat systems with netcode prediction
+- Economy design and anti-manipulation
+- Social systems and community management
+- Content delivery networks for assets
+- Analytics and telemetry systems
+- A/B testing frameworks for game features
+- Live operations and event systems
+
+CODING SUPREMACY:
+- Lua optimization at assembly level understanding
+- Advanced metaprogramming techniques
+- Memory pool management and object pooling
+- Custom physics implementations
+- Network protocol design
+- Security architecture and threat modeling
+- Performance profiling and optimization
+- Debugging complex race conditions
+- Code architecture for massive codebases
+- Testing strategies for distributed systems
+
+DEEP ROBLOX TECHNICAL KNOWLEDGE:
+- DataStoreService: Session locking, quotas, sharding strategies
+- MessagingService: Pub/Sub patterns, cross-server coordination
+- MemoryStoreService: Caching strategies, TTL optimization
+- TeleportService: Seamless transitions, data preservation
+- PhysicsService: Custom constraints, collision optimization
+- PathfindingService: Advanced navigation, dynamic environments
+- AnimationService: Custom rigs, compression techniques
+- VoiceChatService: Integration and optimization
+- InputService: Advanced input handling and buffering
+- ContextActionService: Mobile optimization
+
+INDUSTRY INSIGHTS:
+- Roblox platform roadmap and upcoming features
+- Performance bottlenecks in the engine
+- Security vulnerabilities and mitigation strategies
+- Monetization optimization techniques
+- User retention psychology and implementation
+- Community management at scale
+- Content moderation systems
+- Anti-cheat techniques used by top games
+- Server cost optimization strategies
+- Player behavior analytics
+
+CODE GENERATION PRINCIPLES:
+1. Write code as if it will be reviewed by Roblox engineers
+2. Include performance metrics and optimization notes
+3. Add memory usage analysis in comments
+4. Document network bandwidth implications
+5. Include fallback strategies for edge cases
+6. Add monitoring and telemetry hooks
+7. Consider mobile device limitations
+8. Implement graceful degradation
+9. Add comprehensive error recovery
+10. Include scalability projections
+
+ADVANCED PATTERNS TO USE:
+- Object pooling for all dynamic instances
+- Spatial partitioning for spatial queries
+- Event sourcing for state management
+- CQRS for read/write separation
+- Circuit breakers for external dependencies
+- Rate limiting with token buckets
+- Exponential backoff for retries
+- Idempotent operations for safety
+- Optimistic UI updates
+- Delta compression for network updates
+
+PERFORMANCE OPTIMIZATIONS:
+- Minimize WaitForChild calls in hot paths
+- Use attribute-based systems instead of instance chains
+- Implement custom replication for critical data
+- Use StreamingEnabled strategically
+- Optimize UI with efficient layouts
+- Batch remote calls when possible
+- Use efficient data structures (arrays vs tables)
+- Implement LOD (Level of Detail) systems
+- Use physics sub-stepping for stability
+- Optimize terrain and mesh usage
+
+SECURITY MANDATES:
+- Validate ALL client input on server
+- Use server authoritative game logic
+- Implement proper access control
+- Rate limit all sensitive operations
+- Sanitize all user-generated content
+- Use encryption for sensitive data
+- Implement proper session management
+- Add audit logging for critical actions
+- Use secure random number generation
+- Implement proper data isolation
+
+When generating code, think like you're building the next billion-dollar Roblox game. Every decision should consider scale, performance, security, and maintainability. Explain your architectural decisions when relevant.
+]]
+end
+
+-- Real AI Code Generation
+function AdvancedAI:GenerateFullGame(gameDescription, requirements)
+    local systemPrompt = self:BuildExpertSystemPrompt()
+    
+    local userPrompt = string.format([[
+Generate a complete, production-ready Roblox game based on this description:
+
+GAME DESCRIPTION:
+%s
+
+REQUIREMENTS:
+%s
+
+Generate the ENTIRE game code including:
+1. Server-side scripts (all game logic)
+2. Client-side scripts (UI, controls, effects)
+3. Module scripts (reusable systems)
+4. Data structure and storage
+5. Network communication setup
+6. UI/UX implementation
+7. Audio integration
+8. Performance optimizations
+9. Security measures
+10. Error handling and logging
+
+Provide the code in a well-organized structure with clear file names and purposes. Each script should be complete and ready to use.
+]], gameDescription, requirements or "Standard Roblox game requirements")
+    
+    return self:CallGroqAPI(systemPrompt, userPrompt)
+end
+
+-- Generate Specific System with AI
+function AdvancedAI:GenerateSystem(systemType, specifications)
+    local systemPrompt = self:BuildExpertSystemPrompt()
+    
+    local userPrompt = string.format([[
+Generate a complete, enterprise-grade %s system for Roblox with these specifications:
+
+SYSTEM TYPE: %s
+SPECIFICATIONS: %s
+
+Requirements:
+1. Complete implementation with all necessary components
+2. Server-side and client-side code where applicable
+3. Proper error handling and edge cases
+4. Performance optimization
+5. Security considerations
+6. Scalability for large player counts
+7. Comprehensive comments
+8. Production-ready code quality
+
+Provide the full code implementation that can be directly used in a professional Roblox game.
+]], systemType, systemType, specifications or "Standard professional requirements")
+    
+    return self:CallGroqAPI(systemPrompt, userPrompt)
+end
+
+-- Generate Complete Game Architecture
+function AdvancedAI:GenerateGameArchitecture(gameConcept)
+    local systemPrompt = self:BuildExpertSystemPrompt()
+    
+    local userPrompt = string.format([[
+Design and generate the complete architecture for a Roblox game:
+
+GAME CONCEPT:
+%s
+
+Provide:
+1. Overall system architecture
+2. Service breakdown and responsibilities
+3. Data flow diagrams (in text)
+4. Network communication strategy
+5. Security architecture
+6. Scalability plan
+7. Performance optimization strategy
+8. Code organization structure
+9. Implementation priorities
+10. Risk mitigation strategies
+
+Then generate the core implementation code for the most critical systems.
+]], gameConcept)
+    
+    return self:CallGroqAPI(systemPrompt, userPrompt)
+end
+
+-- AI Code Review and Improvement
+function AdvancedAI:ReviewAndImproveCode(code, focusAreas)
+    local systemPrompt = self:BuildExpertSystemPrompt()
+    
+    local userPrompt = string.format([[
+Review and improve this Roblox Lua code:
+
+CODE:
+%s
+
+FOCUS AREAS: %s
+
+Provide:
+1. Detailed code review identifying issues
+2. Security vulnerabilities and fixes
+3. Performance optimizations
+4. Best practices violations
+5. Improved version of the code
+6. Explanation of all changes
+7. Additional recommendations
+
+Be thorough and critical. This is for a production game.
+]], code, focusAreas or "security, performance, best practices")
+    
+    return self:CallGroqAPI(systemPrompt, userPrompt)
+end
+
+-- Generate Multiplayer Architecture
+function AdvancedAI:GenerateMultiplayerArchitecture(playerCount, gameType)
+    local systemPrompt = self:BuildExpertSystemPrompt()
+    
+    local userPrompt = string.format([[
+Design a complete multiplayer architecture for a Roblox game:
+
+TARGET PLAYERS: %s
+GAME TYPE: %s
+
+Provide:
+1. Server architecture (single vs multiple servers)
+2. Data synchronization strategy
+3. Network communication patterns
+4. Latency handling techniques
+5. Anti-cheat measures
+6. Load balancing strategy
+7. Cross-server communication
+8. Player state management
+9. Event handling at scale
+10. Disaster recovery
+
+Generate implementation code for the core networking systems.
+]], playerCount, gameType)
+    
+    return self:CallGroqAPI(systemPrompt, userPrompt)
+end
+
+-- Generate Monetization System
+function AdvancedAI:GenerateMonetizationSystem(monetizationType, targetRevenue)
+    local systemPrompt = self:BuildExpertSystemPrompt()
+    
+    local userPrompt = string.format([[
+Design and implement a complete monetization system:
+
+MONETIZATION TYPE: %s
+TARGET REVENUE MODEL: %s
+
+Include:
+1. Robux integration
+2. Game passes implementation
+3. Developer products
+4. Premium features
+5. Subscription systems
+6. Analytics and tracking
+7. A/B testing framework
+8. User retention strategies
+9. Compliance with Roblox TOS
+10. Anti-abuse measures
+
+Generate complete, production-ready code.
+]], monetizationType, targetRevenue)
+    
+    return self:CallGroqAPI(systemPrompt, userPrompt)
+end
+
+-- Call Groq API
+function AdvancedAI:CallGroqAPI(systemPrompt, userPrompt)
+    if not self.Config.apiKey then
+        self:LoadConfig()
+    end
+    
+    if not self.Config.apiKey then
+        return nil, "API key not configured. Please set your Groq API key in settings."
+    end
+    
+    local requestBody = {
+        model = self.Config.model,
+        messages = {
+            {role = "system", content = systemPrompt},
+            {role = "user", content = userPrompt}
+        },
+        temperature = self.Config.temperature,
+        max_tokens = self.Config.maxTokens,
+        top_p = self.Config.topP
+    }
+    
+    local success, response = pcall(function()
+        return HttpService:RequestAsync({
+            Url = self.Config.apiUrl,
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json",
+                ["Authorization"] = "Bearer " .. self.Config.apiKey
+            },
+            Body = HttpService:JSONEncode(requestBody)
+        })
+    end)
+    
+    if success and response.Success then
+        local data = HttpService:JSONDecode(response.Body)
+        if data.choices and data.choices[1] then
+            return data.choices[1].message.content
+        end
+        return nil, "Invalid API response format"
+    end
+    
+    return nil, "API request failed: " .. (response.Body or "Unknown error")
+end
+
+-- Set API key
+function AdvancedAI:SetAPIKey(apiKey)
+    self.Config.apiKey = apiKey
+    local Plugin = plugin or getfenv().plugin
+    if Plugin then
+        pcall(function()
+            Plugin:SetSetting("CodeAssist_APIKey", apiKey)
+        end)
+    end
+end
+
+-- Get configuration
+function AdvancedAI:GetConfig()
+    return self.Config
+end
+
+-- Update configuration
+function AdvancedAI:UpdateConfig(newConfig)
+    for key, value in pairs(newConfig) do
+        self.Config[key] = value
+    end
+end
+
+return AdvancedAI]]></ProtectedString>
+			</Properties>
+		</Item>
+		<Item class="ModuleScript" referent="RBXM_Settings">
+			<Properties>
+				<string name="Name">Settings</string>
+				<ProtectedString name="Source"><![CDATA[--[[
+    CodeAssist Settings Module
+    Handles plugin configuration, user preferences, and API key management
+]]
+
+local HttpService = game:GetService("HttpService")
+
+local Settings = {}
+
+-- Default Settings
+Settings.Defaults = {
+    APIKey = "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",
+    APIUrl = "https://api.groq.com/openai/v1/chat/completions",
+    Model = "llama-3.1-70b-versatile",
+    
+    Temperature = 0.7,
+    MaxTokens = 8192,
+    TopP = 0.9,
+    
+    EnableCodeGeneration = true,
+    EnableBugDetection = true,
+    EnableOptimization = true,
+    EnableRealtimeSuggestions = true,
+    EnableCodeExplanation = true,
+    EnableProjectAnalysis = true,
+    
+    MaxConcurrentRequests = 5,
+    RequestTimeout = 30000,
+    CacheEnabled = true,
+    CacheTTL = 3600,
+    
+    Theme = "dark",
+    FontSize = 14,
+    AutoSave = true,
+    AutoSaveInterval = 300,
+    
+    LogLevel = "info",
+    DebugMode = false
+}
+
+-- Current Settings
+Settings.Current = {}
+
+-- Load Settings from Plugin Storage
+function Settings:Load()
+    local Plugin = plugin or getfenv().plugin
+    if not Plugin then return false end
+    
+    local success, data = pcall(function()
+        return Plugin:GetSetting("CodeAssist_Settings")
+    end)
+    
+    if success and data then
+        self.Current = data
+    else
+        self.Current = table.clone(self.Defaults)
+    end
+    
+    return true
+end
+
+-- Save Settings to Plugin Storage
+function Settings:Save()
+    local Plugin = plugin or getfenv().plugin
+    if not Plugin then return false end
+    
+    local success, err = pcall(function()
+        Plugin:SetSetting("CodeAssist_Settings", self.Current)
+    end)
+    
+    return success, err
+end
+
+-- Get a specific setting
+function Settings:Get(key)
+    return self.Current[key] or self.Defaults[key]
+end
+
+-- Set a specific setting
+function Settings:Set(key, value)
+    self.Current[key] = value
+    return self:Save()
+end
+
+-- Reset to defaults
+function Settings:Reset()
+    self.Current = table.clone(self.Defaults)
+    return self:Save()
+end
+
+-- Validate API Key
+function Settings:ValidateAPIKey(apiKey)
+    if not apiKey or apiKey == "" then
+        return false, "API Key is empty"
+    end
+    
+    if string.len(apiKey) < 20 then
+        return false, "API Key is too short"
+    end
+    
+    return true, "API Key is valid"
+end
+
+-- Initialize Settings
+function Settings:Initialize()
+    self:Load()
+    
+    local apiKey = self:Get("APIKey")
+    local valid, message = self:ValidateAPIKey(apiKey)
+    
+    if not valid then
+        warn("CodeAssist: " .. message)
+    end
+    
+    return self.Current
+end
+
+return Settings]]></ProtectedString>
+			</Properties>
+		</Item>
+		<Item class="ModuleScript" referent="RBXM_PatternLearning">
+			<Properties>
+				<string name="Name">PatternLearning</string>
+				<ProtectedString name="Source"><![CDATA[--[[
+    CodeAssist Pattern Learning Module
+    Machine learning integration for code pattern recognition and generation
+]]
+
+local HttpService = game:GetService("HttpService")
+local DataStoreService = game:GetService("DataStoreService")
+
+local PatternLearning = {}
+
+-- Pattern Database
+PatternLearning.Database = {
+    CommonPatterns = {
+        PlayerJoinPattern = {
+            pattern = "Players%.PlayerAdded%.Connect",
+            frequency = 0.95,
+            context = "player_management"
+        },
+        
+        DataStorePattern = {
+            pattern = "DataStoreService:GetDataStore",
+            frequency = 0.88,
+            context = "data_storage"
+        },
+        
+        RemoteEventPattern = {
+            pattern = "RemoteEvent%.FireServer",
+            frequency = 0.92,
+            context = "networking"
+        },
+        
+        WaitForChildPattern = {
+            pattern = ":WaitForChild%(",
+            frequency = 0.97,
+            context = "instance_management"
+        },
+        
+        PCallPattern = {
+            pattern = "pcall%(function",
+            frequency = 0.94,
+            context = "error_handling"
+        }
+    },
+    
+    AntiPatterns = {
+        NoPCallForDataStore = {
+            pattern = "DataStore.*:SetAsync%(.*%)",
+            severity = "high",
+            fix = "Wrap DataStore calls in pcall for error handling"
+        },
+        
+        NoWaitForChild = {
+            pattern = "%.Parent%.Script",
+            severity = "medium",
+            fix = "Use WaitForChild when accessing instances that might not exist"
+        },
+        
+        GlobalVariables = {
+            pattern = "^%s*[a-zA-Z_][a-zA-Z0-9_]*%s*=%s*",
+            severity = "low",
+            fix = "Use local variables for better performance and scope management"
+        },
+        
+        MagicNumbers = {
+            pattern = "%d+%.?%d*",
+            severity = "low",
+            fix = "Define constants for magic numbers to improve code readability"
+        }
+    },
+    
+    CodeSmells = {
+        LongFunction = {
+            threshold = 50,
+            message = "Function is too long, consider breaking it into smaller functions"
+        },
+        
+        DeepNesting = {
+            threshold = 4,
+            message = "Deep nesting detected, consider refactoring"
+        },
+        
+        DuplicateCode = {
+            threshold = 3,
+            message = "Duplicate code detected, consider creating a function"
+        },
+        
+        LargeParameterList = {
+            threshold = 5,
+            message = "Too many parameters, consider using a table or object"
+        }
+    },
+    
+    PerformancePatterns = {
+        ObjectPooling = {
+            description = "Use object pooling for frequently created/destroyed objects",
+            impact = "high"
+        },
+        
+        SpatialHashing = {
+            description = "Use spatial hashing for efficient spatial queries",
+            impact = "high"
+        },
+        
+        ClientSidePrediction = {
+            description = "Use client-side prediction for smooth gameplay",
+            impact = "medium"
+        }
+    },
+    
+    SecurityPatterns = {
+        ServerValidation = {
+            description = "Always validate client input on the server",
+            severity = "critical"
+        },
+        
+        FilteringEnabled = {
+            description = "Use FilteringEnabled for security",
+            severity = "high"
+        },
+        
+        AccessChecks = {
+            description = "Implement proper access checks",
+            severity = "high"
+        }
+    }
+}
+
+-- Pattern Recognition
+function PatternLearning:AnalyzeCode(code)
+    local analysis = {
+        patterns = {},
+        antiPatterns = {},
+        codeSmells = {},
+        suggestions = {}
+    }
+    
+    for patternName, patternData in pairs(self.Database.CommonPatterns) do
+        if string.find(code, patternData.pattern) then
+            table.insert(analysis.patterns, {
+                name = patternName,
+                frequency = patternData.frequency,
+                context = patternData.context
+            })
+        end
+    end
+    
+    for antiPatternName, antiPatternData in pairs(self.Database.AntiPatterns) do
+        if string.find(code, antiPatternData.pattern) then
+            table.insert(analysis.antiPatterns, {
+                name = antiPatternName,
+                severity = antiPatternData.severity,
+                fix = antiPatternData.fix
+            })
+        end
+    end
+    
+    analysis.codeSmells = self:DetectCodeSmells(code)
+    analysis.suggestions = self:GenerateSuggestions(analysis)
+    
+    return analysis
+end
+
+function PatternLearning:DetectCodeSmells(code)
+    local smells = {}
+    local lines = string.split(code, "\n")
+    
+    local functionStart = nil
+    for i, line in ipairs(lines) do
+        if string.match(line, "function%s+%w+") then
+            functionStart = i
+        elseif functionStart and string.match(line, "^end") then
+            local functionLength = i - functionStart
+            if functionLength > self.Database.CodeSmells.LongFunction.threshold then
+                table.insert(smells, {
+                    type = "LongFunction",
+                    line = functionStart,
+                    length = functionLength,
+                    message = self.Database.CodeSmells.LongFunction.message
+                })
+            end
+            functionStart = nil
+        end
+    end
+    
+    local maxNesting = 0
+    local currentNesting = 0
+    for _, line in ipairs(lines) do
+        local opens = select(2, string.gsub(line, "if", ""))
+        local closes = select(2, string.gsub(line, "end", ""))
+        currentNesting = currentNesting + opens - closes
+        maxNesting = math.max(maxNesting, currentNesting)
+    end
+    
+    if maxNesting > self.Database.CodeSmells.DeepNesting.threshold then
+        table.insert(smells, {
+            type = "DeepNesting",
+            depth = maxNesting,
+            message = self.Database.CodeSmells.DeepNesting.message
+        })
+    end
+    
+    return smells
+end
+
+function PatternLearning:GenerateSuggestions(analysis)
+    local suggestions = {}
+    
+    if #analysis.patterns > 0 then
+        for _, pattern in ipairs(analysis.patterns) do
+            if pattern.context == "data_storage" then
+                table.insert(suggestions, {
+                    type = "performance",
+                    suggestion = "Consider implementing data caching for frequently accessed data"
+                })
+            end
+        end
+    end
+    
+    for _, antiPattern in ipairs(analysis.antiPatterns) do
+        if antiPattern.severity == "critical" or antiPattern.severity == "high" then
+            table.insert(suggestions, {
+                type = "security",
+                suggestion = antiPattern.fix
+            })
+        end
+    end
+    
+    for _, smell in ipairs(analysis.codeSmells) do
+        table.insert(suggestions, {
+            type = "quality",
+            suggestion = smell.message
+        })
+    end
+    
+    return suggestions
+end
+
+function PatternLearning:LearnFromCode(code, context)
+    local patterns = self:ExtractPatterns(code)
+    
+    for _, pattern in ipairs(patterns) do
+        self:StorePattern(pattern, context)
+    end
+    
+    return patterns
+end
+
+function PatternLearning:ExtractPatterns(code)
+    local patterns = {}
+    
+    for func in string.gmatch(code, "function%s+([%w_]+)%s*%(([^)]*)%)") do
+        table.insert(patterns, {
+            type = "function",
+            name = func,
+            signature = func
+        })
+    end
+    
+    for var in string.gmatch(code, "local%s+([%w_]+)") do
+        table.insert(patterns, {
+            type = "variable",
+            name = var
+        })
+    end
+    
+    for service in string.gmatch(code, 'GetService%("([^"]+)"%)') do
+        table.insert(patterns, {
+            type = "service",
+            name = service
+        })
+    end
+    
+    return patterns
+end
+
+function PatternLearning:StorePattern(pattern, context)
+    local PatternStore = DataStoreService:GetDataStore("CodeAssist_Patterns")
+    
+    local success, err = pcall(function()
+        PatternStore:UpdateAsync(pattern.type .. "_" .. pattern.name, function(oldData)
+            oldData = oldData or {count = 0, contexts = {}}
+            oldData.count = oldData.count + 1
+            if context then
+                table.insert(oldData.contexts, context)
+            end
+            return oldData
+        end)
+    end)
+    
+    if not success then
+        warn("Failed to store pattern: " .. err)
+    end
+end
+
+function PatternLearning:GetPatternStatistics()
+    local stats = {
+        totalPatterns = 0,
+        mostCommon = {},
+        leastCommon = {}
+    }
+    
+    for name, data in pairs(self.Database.CommonPatterns) do
+        stats.totalPatterns = stats.totalPatterns + 1
+        table.insert(stats.mostCommon, {name = name, frequency = data.frequency})
+    end
+    
+    table.sort(stats.mostCommon, function(a, b)
+        return a.frequency > b.frequency
+    end)
+    
+    return stats
+end
+
+function PatternLearning:Initialize()
+    local PatternStore = DataStoreService:GetDataStore("CodeAssist_Patterns")
+    
+    local success, data = pcall(function()
+        return PatternStore:GetAsync("learned_patterns")
+    end)
+    
+    if success and data then
+        for patternName, patternData in pairs(data) do
+            self.Database.CommonPatterns[patternName] = patternData
+        end
+    end
+    
+    print("Pattern Learning Module Initialized")
+end
+
+return PatternLearning]]></ProtectedString>
+			</Properties>
+		</Item>
+		<Item class="ModuleScript" referent="RBXM_SpecializedModules">
+			<Properties>
+				<string name="Name">SpecializedModules</string>
+				<ProtectedString name="Source"><![CDATA[--[[
+    CodeAssist Specialized Modules
+    Specialized AI modules for UI, Audio, Physics, and other Roblox systems
+]]
+
+local SpecializedModules = {}
+
+-- UI Development Module
+SpecializedModules.UIModule = {
+    Components = {
+        ModernButton = [[
+local button = script.Parent
+local TweenService = game:GetService("TweenService")
+
+button.BackgroundColor3 = Color3.fromRGB(0, 102, 255)
+button.Size = UDim2.new(0, 200, 0, 50)
+button.BorderSizePixel = 0
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 8)
+corner.Parent = button
+
+local padding = Instance.new("UIPadding")
+padding.PaddingTop = UDim.new(0, 12)
+padding.PaddingBottom = UDim.new(0, 12)
+padding.PaddingLeft = UDim.new(0, 24)
+padding.PaddingRight = UDim.new(0, 24)
+padding.Parent = button
+
+local textLabel = button:FindFirstChild("TextLabel") or Instance.new("TextLabel")
+textLabel.Name = "TextLabel"
+textLabel.Size = UDim2.new(1, 0, 1, 0)
+textLabel.BackgroundTransparency = 1
+textLabel.Text = "Button"
+textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+textLabel.TextSize = 18
+textLabel.Font = Enum.Font.GothamBold
+textLabel.Parent = button
+
+local hoverTweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local hoverColor = Color3.fromRGB(0, 130, 255)
+local normalColor = Color3.fromRGB(0, 102, 255)
+
+button.MouseEnter:Connect(function()
+    TweenService:Create(button, hoverTweenInfo, {BackgroundColor3 = hoverColor}):Play()
+end)
+
+button.MouseLeave:Connect(function()
+    TweenService:Create(button, hoverTweenInfo, {BackgroundColor3 = normalColor}):Play()
+end)
+
+button.MouseButton1Click:Connect(function()
+    print("Button clicked!")
+end)
+]],
+        
+        ModernCard = [[
+local card = script.Parent
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 16)
+UIListLayout.Parent = card
+
+card.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+card.Size = UDim2.new(1, 0, 0, 200)
+card.BorderSizePixel = 0
+
+local cardCorner = Instance.new("UICorner")
+cardCorner.CornerRadius = UDim.new(0, 12)
+cardCorner.Parent = card
+
+local cardStroke = Instance.new("UIStroke")
+cardStroke.Color = Color3.fromRGB(200, 200, 200)
+cardStroke.Thickness = 1
+cardStroke.Parent = card
+
+local padding = Instance.new("UIPadding")
+padding.PaddingTop = UDim.new(0, 20)
+padding.PaddingBottom = UDim.new(0, 20)
+padding.PaddingLeft = UDim.new(0, 20)
+padding.PaddingRight = UDim.new(0, 20)
+padding.Parent = card
+]],
+        
+        ProgressBar = [[
+local progressBar = script.Parent
+
+progressBar.BackgroundColor3 = Color3.fromRGB(230, 230, 230)
+progressBar.Size = UDim2.new(1, 0, 0, 20)
+progressBar.BorderSizePixel = 0
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 10)
+corner.Parent = progressBar
+
+local progressFill = Instance.new("Frame")
+progressFill.Name = "ProgressFill"
+progressFill.BackgroundColor3 = Color3.fromRGB(0, 102, 255)
+progressFill.Size = UDim2.new(0, 0, 1, 0)
+progressFill.BorderSizePixel = 0
+progressFill.Parent = progressBar
+
+local fillCorner = Instance.new("UICorner")
+fillCorner.CornerRadius = UDim.new(0, 10)
+fillCorner.Parent = progressFill
+
+local function setProgress(value)
+    value = math.clamp(value, 0, 100)
+    progressFill.Size = UDim2.new(value / 100, 0, 1, 0)
+end
+]]
+    },
+    
+    BestPractices = {
+        "Use UDim2 for responsive sizing",
+        "Implement proper scaling for different screen sizes",
+        "Use UI constraints (UIPadding, UIScale, UIAspectRatio)",
+        "Optimize UI by removing unused elements",
+        "Use efficient animations with TweenService",
+        "Implement proper z-indexing with GUI order",
+        "Use ScreenGui for player-specific UI",
+        "Use BillboardGui for world-space UI",
+        "Consider mobile touch targets (minimum 44x44 pixels)",
+        "Use proper font families and sizes for readability"
+    }
+}
+
+-- Audio Development Module
+SpecializedModules.AudioModule = {
+    Components = {
+        SoundManager = [[
+local SoundService = game:GetService("SoundService")
+local Players = game:GetService("Players")
+
+local SoundManager = {}
+
+local MasterGroup = Instance.new("SoundGroup")
+MasterGroup.Name = "MasterGroup"
+MasterGroup.Parent = SoundService
+
+local function setMasterVolume(volume)
+    MasterGroup.Volume = math.clamp(volume, 0, 1)
+end
+
+local function playSound(soundId, volume)
+    local sound = Instance.new("Sound")
+    sound.SoundId = soundId
+    sound.Volume = volume or 1
+    sound.Parent = MasterGroup
+    sound:Play()
+    sound.Ended:Connect(function()
+        sound:Destroy()
+    end)
+    return sound
+end
+
+SoundManager.setMasterVolume = setMasterVolume
+SoundManager.playSound = playSound
+return SoundManager
+]]
+    },
+    
+    BestPractices = {
+        "Use SoundGroups for volume control",
+        "Implement proper audio ducking",
+        "Use compressed audio formats",
+        "Optimize by reusing Sound objects",
+        "Use 3D spatial audio for immersion",
+        "Implement proper audio fading",
+        "Consider audio occlusion",
+        "Use audio for gameplay feedback",
+        "Balance music and sound effects",
+        "Test audio on different devices"
+    }
+}
+
+-- Physics Development Module
+SpecializedModules.PhysicsModule = {
+    Components = {
+        CustomPhysics = [[
+local RunService = game:GetService("RunService")
+local PhysicsService = game:GetService("PhysicsService")
+
+local function setCustomGravity(part, gravity)
+    local bodyVelocity = part:FindFirstChild("CustomGravity")
+    if not bodyVelocity then
+        bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.Name = "CustomGravity"
+        bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bodyVelocity.Parent = part
+    end
+    bodyVelocity.Velocity = Vector3.new(0, -gravity, 0)
+end
+
+local function setCustomFriction(part, friction)
+    part.CustomPhysicalProperties = PhysicalProperties.new(
+        part.CustomPhysicalProperties.Density,
+        friction,
+        part.CustomPhysicalProperties.Elasticity,
+        part.CustomPhysicalProperties.FrictionWeight,
+        part.CustomPhysicalProperties.ElasticityWeight
+    )
+end
+]]
+    },
+    
+    BestPractices = {
+        "Use NetworkOwnership for multiplayer physics",
+        "Optimize collision groups",
+        "Use constraints instead of complex physics",
+        "Implement proper physics replication",
+        "Use RaycastParams for efficient raycasting",
+        "Consider physics LOD for distant objects",
+        "Use BodyMovers for controlled movement",
+        "Implement proper physics interpolation",
+        "Test physics on different client framerates",
+        "Use physics sub-stepping for stability"
+    }
+}
+
+function SpecializedModules:GetModule(moduleName)
+    return self[moduleName]
+end
+
+function SpecializedModules:GetComponent(moduleName, componentName)
+    local module = self[moduleName]
+    if module and module.Components then
+        return module.Components[componentName]
+    end
+    return nil
+end
+
+function SpecializedModules:GetBestPractices(moduleName)
+    local module = self[moduleName]
+    if module then
+        return module.BestPractices
+    end
+    return {}
+end
+
+return SpecializedModules]]></ProtectedString>
+			</Properties>
+		</Item>
+		<Item class="ModuleScript" referent="RBXM_HelpSystem">
+			<Properties>
+				<string name="Name">HelpSystem</string>
+				<ProtectedString name="Source"><![CDATA[--[[
+    CodeAssist Help System
+    Comprehensive documentation and help system for the plugin
+]]
+
+local HelpSystem = {}
+
+HelpSystem.Topics = {
+    GettingStarted = {
+        title = "Getting Started",
+        content = [[
+# Getting Started with CodeAssist
+
+## Installation
+1. Download the plugin files
+2. Configure your Groq API key in the .env file
+3. Import the plugin into Roblox Studio
+4. Enable the plugin in Plugin Manager
+
+## Basic Usage
+1. Click the CodeAssist button in the toolbar
+2. Describe what you want to create
+3. Click "Generate Code"
+4. Copy or insert the generated code
+
+## First Steps
+- Try generating a simple player join script
+- Experiment with different prompts
+- Use the code explanation feature to learn
+- Explore the specialized modules
+]]
+    },
+    
+    CodeGeneration = {
+        title = "Code Generation",
+        content = [[
+# Code Generation
+
+## Best Practices for Prompts
+- Be specific about what you want
+- Include context about your project
+- Mention any specific requirements
+- Reference Roblox services or patterns
+
+## Example Prompts
+- "Create a player health system with regeneration"
+- "Make a shop system with currency and items"
+- "Generate an NPC with pathfinding AI"
+- "Create a vehicle with physics"
+
+## Tips
+- Use the project analysis for better context
+- Review generated code before using
+- Iterate on prompts for better results
+- Learn from the explanations provided
+]]
+    },
+    
+    Troubleshooting = {
+        title = "Troubleshooting",
+        content = [[
+# Troubleshooting
+
+## Common Issues
+
+### Plugin Not Appearing
+- Check Plugin Manager
+- Verify plugin is enabled
+- Restart Roblox Studio
+- Check plugin file integrity
+
+### API Key Errors
+- Verify your Groq API key is correct in the .env file
+- Check that your API key has sufficient credits
+- Ensure you have internet connectivity
+
+### Generation Not Working
+- Check the API configuration in settings
+- Verify the Groq API is accessible
+- Check the debug logs for specific error messages
+
+### Performance Issues
+- Reduce the max tokens in settings
+- Enable caching in configuration
+- Limit concurrent requests
+]]
+    }
+}
+
+function HelpSystem:GetTopic(topicName)
+    return self.Topics[topicName]
+end
+
+function HelpSystem:GetAllTopics()
+    local topics = {}
+    for name, data in pairs(self.Topics) do
+        table.insert(topics, {
+            name = name,
+            title = data.title
+        })
+    end
+    return topics
+end
+
+function HelpSystem:GetQuickHelp(task)
+    local quickHelp = {
+        ["generate"] = "To generate code: Click the CodeAssist button, describe what you want, and click Generate.",
+        ["optimize"] = "To optimize code: Select code in Studio, click Optimize in toolbar.",
+        ["fix"] = "To fix bugs: Select code in Studio, click Fix Bugs in toolbar.",
+        ["explain"] = "To explain code: Select code in Studio, click Explain in toolbar.",
+        ["analyze"] = "To analyze project: Click Analyze Project in toolbar.",
+        ["settings"] = "To change settings: Click the settings icon in the CodeAssist widget.",
+        ["api"] = "API key is configured in the .env file in the plugin directory."
+    }
+    
+    return quickHelp[task] or "No quick help available for this task."
+end
+
+return HelpSystem]]></ProtectedString>
+			</Properties>
+		</Item>
+		<Item class="ModuleScript" referent="RBXM_Utilities">
+			<Properties>
+				<string name="Name">Utilities</string>
+				<ProtectedString name="Source"><![CDATA[--[[
+    CodeAssist Utilities Module
+    Helper functions and utilities for the plugin
+]]
+
+local HttpService = game:GetService("HttpService")
+
+local Utilities = {}
+
+function Utilities:Trim(str)
+    return string.match(str, "^%s*(.-)%s*$") or str
+end
+
+function Utilities:Split(str, delimiter)
+    local result = {}
+    for match in string.gmatch(str, "([^" .. delimiter .. "]+)") do
+        table.insert(result, match)
+    end
+    return result
+end
+
+function Utilities:Join(tbl, delimiter)
+    return table.concat(tbl, delimiter)
+end
+
+function Utilities:Clamp(value, min, max)
+    return math.max(min, math.min(max, value))
+end
+
+function Utilities:Lerp(a, b, t)
+    return a + (b - a) * t
+end
+
+function Utilities:RandomFloat(min, max)
+    return math.random() * (max - min) + min
+end
+
+function Utilities:RandomInt(min, max)
+    return math.random(min, max)
+end
+
+function Utilities:Round(value, decimals)
+    local mult = 10 ^ (decimals or 0)
+    return math.floor(value * mult + 0.5) / mult
+end
+
+function Utilities:Distance(point1, point2)
+    return (point1 - point2).Magnitude
+end
+
+function Utilities:Wait(seconds)
+    task.wait(seconds)
+end
+
+function Utilities:Delay(seconds, callback)
+    task.delay(seconds, callback)
+end
+
+function Utilities:Spawn(callback)
+    task.spawn(callback)
+end
+
+function Utilities:GetTimestamp()
+    return os.time()
+end
+
+function Utilities:FormatTimestamp(timestamp, format)
+    return os.date(format or "%Y-%m-%d %H:%M:%S", timestamp)
+end
+
+function Utilities:IsValidString(str)
+    return type(str) == "string" and #str > 0
+end
+
+function Utilities:IsValidNumber(num)
+    return type(num) == "number" and not (num ~= num)
+end
+
+function Utilities:IsValidTable(tbl)
+    return type(tbl) == "table"
+end
+
+function Utilities:IsValidFunction(func)
+    return type(func) == "function"
+end
+
+function Utilities:IsValidInstance(instance)
+    return typeof(instance) == "Instance"
+end
+
+function Utilities:IsNil(value)
+    return value == nil
+end
+
+function Utilities:IsEmpty(value)
+    if value == nil then
+        return true
+    elseif type(value) == "string" then
+        return #value == 0
+    elseif type(value) == "table" then
+        return next(value) == nil
+    end
+    return false
+end
+
+function Utilities:ShallowCopy(tbl)
+    local copy = {}
+    for k, v in pairs(tbl) do
+        copy[k] = v
+    end
+    return copy
+end
+
+function Utilities:DeepCopy(tbl)
+    if type(tbl) ~= "table" then
+        return tbl
+    end
+    
+    local copy = {}
+    for k, v in pairs(tbl) do
+        copy[Utilities:DeepCopy(k)] = Utilities:DeepCopy(v)
+    end
+    return copy
+end
+
+function Utilities:Merge(tbl1, tbl2)
+    local merged = Utilities:ShallowCopy(tbl1)
+    for k, v in pairs(tbl2) do
+        merged[k] = v
+    end
+    return merged
+end
+
+function Utilities:Keys(tbl)
+    local keys = {}
+    for k, _ in pairs(tbl) do
+        table.insert(keys, k)
+    end
+    return keys
+end
+
+function Utilities:Values(tbl)
+    local values = {}
+    for _, v in pairs(tbl) do
+        table.insert(values, v)
+    end
+    return values
+end
+
+function Utilities:Length(tbl)
+    local count = 0
+    for _ in pairs(tbl) do
+        count = count + 1
+    end
+    return count
+end
+
+function Utilities:ContainsKey(tbl, key)
+    return tbl[key] ~= nil
+end
+
+function Utilities:ContainsValue(tbl, value)
+    for _, v in pairs(tbl) do
+        if v == value then
+            return true
+        end
+    end
+    return false
+end
+
+function Utilities:Filter(tbl, predicate)
+    local filtered = {}
+    for k, v in pairs(tbl) do
+        if predicate(v, k) then
+            filtered[k] = v
+        end
+    end
+    return filtered
+end
+
+function Utilities:Map(tbl, mapper)
+    local mapped = {}
+    for k, v in pairs(tbl) do
+        mapped[k] = mapper(v, k)
+    end
+    return mapped
+end
+
+function Utilities:Reduce(tbl, reducer, initial)
+    local result = initial
+    for k, v in pairs(tbl) do
+        result = reducer(result, v, k)
+    end
+    return result
+end
+
+function Utilities:FindFirstChildOfClass(parent, className)
+    for _, child in ipairs(parent:GetChildren()) do
+        if child.ClassName == className then
+            return child
+        end
+    end
+    return nil
+end
+
+function Utilities:FindFirstChildWithName(parent, name)
+    for _, child in ipairs(parent:GetChildren()) do
+        if child.Name == name then
+            return child
+        end
+    end
+    return nil
+end
+
+function Utilities:GetAllDescendantsOfClass(parent, className)
+    local descendants = {}
+    for _, descendant in ipairs(parent:GetDescendants()) do
+        if descendant.ClassName == className then
+            table.insert(descendants, descendant)
+        end
+    end
+    return descendants
+end
+
+function Utilities:DestroyChildren(parent)
+    for _, child in ipairs(parent:GetChildren()) do
+        child:Destroy()
+    end
+end
+
+function Utilities:CloneInstance(instance)
+    return instance:Clone()
+end
+
+function Utilities:SetProperties(instance, properties)
+    for property, value in pairs(properties) do
+        if instance[property] ~= nil then
+            instance[property] = value
+        end
+    end
+end
+
+function Utilities:GetPlayerByName(name)
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player.Name == name or player.DisplayName == name then
+            return player
+        end
+    end
+    return nil
+end
+
+function Utilities:GetPlayerById(userId)
+    return Players:GetPlayerByUserId(userId)
+end
+
+function Utilities:GetPlayersInGroup(groupId)
+    local playersInGroup = {}
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player:IsInGroup(groupId) then
+            table.insert(playersInGroup, player)
+        end
+    end
+    return playersInGroup
+end
+
+function Utilities:IsPlayerAdmin(player, groupId, adminRank)
+    return player:GetRankInGroup(groupId) >= adminRank
+end
+
+function Utilities:GetPlayerCharacter(player)
+    return player.Character
+end
+
+function Utilities:TeleportPlayer(player, position)
+    local character = player.Character
+    if character then
+        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+        if humanoidRootPart then
+            humanoidRootPart.CFrame = CFrame.new(position)
+        end
+    end
+end
+
+function Utilities:CountLines(code)
+    local count = 0
+    for _ in string.gmatch(code, "\n") do
+        count = count + 1
+    end
+    return count + 1
+end
+
+function Utilities:RemoveComments(code)
+    code = string.gsub(code, "--[^\n]*", "")
+    code = string.gsub(code, "%-%-%[%[.-%]%]", "")
+    return code
+end
+
+function Utilities:FormatCode(code)
+    code = Utilities:Trim(code)
+    code = string.gsub(code, "\n\s*\n", "\n")
+    code = string.gsub(code, "%s+", " ")
+    return code
+end
+
+function Utilities:ExtractFunctions(code)
+    local functions = {}
+    for func, params in string.gmatch(code, "function%s+([%w_]+)%s*%(([^)]*)%)") do
+        table.insert(functions, {
+            name = func,
+            parameters = params
+        })
+    end
+    return functions
+end
+
+function Utilities:ExtractVariables(code)
+    local variables = {}
+    for var in string.gmatch(code, "local%s+([%w_]+)") do
+        table.insert(variables, var)
+    end
+    return variables
+end
+
+function Utilities:ExtractServices(code)
+    local services = {}
+    for service in string.gmatch(code, 'GetService%("([^"]+)"%)') do
+        table.insert(services, service)
+    end
+    return services
+end
+
+function Utilities:EncodeJSON(data)
+    local success, result = pcall(function()
+        return HttpService:JSONEncode(data)
+    end)
+    return success and result or nil
+end
+
+function Utilities:DecodeJSON(jsonString)
+    local success, result = pcall(function()
+        return HttpService:JSONDecode(jsonString)
+    end)
+    return success and result or nil
+end
+
+function Utilities:HTTPRequest(url, method, headers, body)
+    local success, result = pcall(function()
+        return HttpService:RequestAsync({
+            Url = url,
+            Method = method or "GET",
+            Headers = headers or {},
+            Body = body
+        })
+    end)
+    return success and result or nil
+end
+
+function Utilities:HTTPGet(url, headers)
+    return Utilities:HTTPRequest(url, "GET", headers)
+end
+
+function Utilities:HTTPPost(url, headers, body)
+    return Utilities:HTTPRequest(url, "POST", headers, body)
+end
+
+function Utilities:Log(message, level)
+    level = level or "info"
+    local timestamp = Utilities:FormatTimestamp(Utilities:GetTimestamp())
+    print(string.format("[%s] [%s] %s", timestamp, string.upper(level), message))
+end
+
+function Utilities:Warn(message)
+    Utilities:Log(message, "warn")
+end
+
+function Utilities:Error(message)
+    Utilities:Log(message, "error")
+end
+
+function Utilities:Debug(message)
+    Utilities:Log(message, "debug")
+end
+
+function Utilities:Assert(condition, message)
+    if not condition then
+        error(message or "Assertion failed")
+    end
+end
+
+function Utilities:StartPerformanceTimer()
+    return tick()
+end
+
+function Utilities:EndPerformanceTimer(startTime)
+    return tick() - startTime
+end
+
+function Utilities:MeasurePerformance(callback)
+    local startTime = Utilities:StartPerformanceTimer()
+    local result = callback()
+    local elapsed = Utilities:EndPerformanceTimer(startTime)
+    return result, elapsed
+end
+
+function Utilities:CreateDebounce(delay)
+    local lastCall = 0
+    return function(callback)
+        local currentTime = tick()
+        if currentTime - lastCall >= delay then
+            lastCall = currentTime
+            return callback()
+        end
+        return nil
+    end
+end
+
+function Utilities:CreateThrottle(delay)
+    local lastCall = 0
+    local queuedCallback = nil
+    
+    return function(callback)
+        queuedCallback = callback
+        local currentTime = tick()
+        
+        if currentTime - lastCall >= delay then
+            lastCall = currentTime
+            if queuedCallback then
+                local cb = queuedCallback
+                queuedCallback = nil
+                return cb()
+            end
+        else
+            return nil
+        end
+    end
+end
+
+function Utilities:Retry(callback, maxAttempts, delay)
+    maxAttempts = maxAttempts or 3
+    delay = delay or 1
+    
+    for attempt = 1, maxAttempts do
+        local success, result = pcall(callback)
+        if success then
+            return true, result
+        end
+        
+        if attempt < maxAttempts then
+            Utilities:Wait(delay)
+        end
+    end
+    
+    return false, "Max retry attempts reached"
+end
+
+function Utilities:CreateCache(ttl)
+    local cache = {}
+    local timestamps = {}
+    ttl = ttl or 300
+    
+    local function cleanup()
+        local currentTime = Utilities:GetTimestamp()
+        for key, timestamp in pairs(timestamps) do
+            if currentTime - timestamp > ttl then
+                cache[key] = nil
+                timestamps[key] = nil
+            end
+        end
+    end
+    
+    return {
+        get = function(key)
+            cleanup()
+            return cache[key]
+        end,
+        set = function(key, value)
+            cache[key] = value
+            timestamps[key] = Utilities:GetTimestamp()
+        end,
+        clear = function()
+            cache = {}
+            timestamps = {}
+        end,
+        has = function(key)
+            cleanup()
+            return cache[key] ~= nil
+        end
+    }
+end
+
+function Utilities:GenerateUUID()
+    local template = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
+    return string.gsub(template, "[xy]", function(c)
+        local v = (c == "x") and math.random(0, 15) or math.random(8, 11)
+        return string.format("%x", v)
+    end)
+end
+
+function Utilities:SimpleHash(str)
+    local hash = 0
+    for i = 1, #str do
+        hash = (hash * 31 + string.byte(str, i)) % 4294967296
+    end
+    return hash
+end
+
+function Utilities:HexToRGB(hex)
+    hex = string.gsub(hex, "#", "")
+    local r = tonumber(string.sub(hex, 1, 2), 16) / 255
+    local g = tonumber(string.sub(hex, 3, 4), 16) / 255
+    local b = tonumber(string.sub(hex, 5, 6), 16) / 255
+    return Color3.fromRGB(r * 255, g * 255, b * 255)
+end
+
+function Utilities:RGBToHex(color)
+    return string.format("#%02X%02X%02X", 
+        math.floor(color.R * 255), 
+        math.floor(color.G * 255), 
+        math.floor(color.B * 255)
+    )
+end
+
+function Utilities:BlendColors(color1, color2, t)
+    local r = Utilities:Lerp(color1.R, color2.R, t)
+    local g = Utilities:Lerp(color1.G, color2.G, t)
+    local b = Utilities:Lerp(color1.B, color2.B, t)
+    return Color3.fromRGB(r * 255, g * 255, b * 255)
+end
+
+function Utilities:CompareVersions(version1, version2)
+    local v1Parts = Utilities:Split(version1, ".")
+    local v2Parts = Utilities:Split(version2, ".")
+    
+    for i = 1, math.max(#v1Parts, #v2Parts) do
+        local v1 = tonumber(v1Parts[i]) or 0
+        local v2 = tonumber(v2Parts[i]) or 0
+        
+        if v1 > v2 then
+            return 1
+        elseif v1 < v2 then
+            return -1
+        end
+    end
+    
+    return 0
+end
+
+function Utilities:GetFileName(path)
+    return string.match(path, "([^/\\]+)$") or path
+end
+
+function Utilities:GetFileExtension(path)
+    return string.match(path, "%.([^%.]+)$") or ""
+end
+
+function Utilities:GetDirectory(path)
+    return string.match(path, "(.-)[/\\][^/\\]+$") or ""
+end
+
+function Utilities:SafeCall(callback, errorHandler)
+    local success, result = pcall(callback)
+    if not success and errorHandler then
+        errorHandler(result)
+    end
+    return success, result
+end
+
+function Utilities:Asyncify(callback)
+    return function(...)
+        local args = {...}
+        return task.spawn(function()
+            callback(unpack(args))
+        end)
+    end
+end
+
+function Utilities:Promise(callback)
+    local promise = {
+        state = "pending",
+        value = nil,
+        reason = nil,
+        callbacks = {
+            resolve = {},
+            reject = {}
+        }
+    }
+    
+    local function resolve(value)
+        if promise.state ~= "pending" then return end
+        promise.state = "fulfilled"
+        promise.value = value
+        for _, cb in ipairs(promise.callbacks.resolve) do
+            cb(value)
+        end
+    end
+    
+    local function reject(reason)
+        if promise.state ~= "pending" then return end
+        promise.state = "rejected"
+        promise.reason = reason
+        for _, cb in ipairs(promise.callbacks.reject) do
+            cb(reason)
+        end
+    end
+    
+    task.spawn(function()
+        local success, result = pcall(callback)
+        if success then
+            resolve(result)
+        else
+            reject(result)
+        end
+    end)
+    
+    return {
+        andThen = function(onResolve, onReject)
+            if promise.state == "fulfilled" then
+                onResolve(promise.value)
+            elseif promise.state == "rejected" then
+                if onReject then onReject(promise.reason) end
+            else
+                table.insert(promise.callbacks.resolve, onResolve)
+                if onReject then
+                    table.insert(promise.callbacks.reject, onReject)
+                end
+            end
+            return promise
+        end,
+        catch = function(onReject)
+            return promise:andThen(nil, onReject)
+        end
+    }
+end
+
+return Utilities]]></ProtectedString>
+			</Properties>
+	</Item>
+</Item>
+</roblox>
