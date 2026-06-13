@@ -263,11 +263,12 @@ function downloadPlugin() {
     const content = "=== CodeAssist Plugin - Version 1.0.0 ===\\n\\n=== FILE: CodeAssist.lua (Main Plugin Script) ===\\n" + pluginScript + "\\n\\n=== FILE: AdvancedAI.lua (AI Module) ===\\n" + advancedAIScript + "\\n\\n=== FILE: README.md ===\\n" + readme;
 
     // Create download
-    const blob = new Blob([content], { type: 'text/plain' });
+    const blob = new Blob([content], { type: 'application/octet-stream' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = 'CodeAssist-Plugin-v1.0.0.lua';
+    a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
