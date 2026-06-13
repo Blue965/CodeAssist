@@ -234,7 +234,14 @@ local FullGameToolbar = Toolbar:CreateButton("Full Game", "Generate complete gam
 
 -- Load Advanced AI Module
 local AdvancedAI = require(script.Parent.AdvancedAI)
-AdvancedAI:LoadConfig()
+
+-- Load API key from plugin settings and pass to module
+local success, apiKey = pcall(function()
+    return Plugin:GetSetting("CodeAssist_APIKey")
+end)
+if success and apiKey and apiKey ~= "" then
+    AdvancedAI:SetAPIKey(apiKey)
+end
 
 -- AI Functions
 local AIService = {}
@@ -335,8 +342,8 @@ end)
 print("CodeAssist Plugin Loaded Successfully!")
 ]]
 
-    -- Create AdvancedAI.lua
-    local advancedAIScript = [[
+-- Create AdvancedAI.lua
+local advancedAIScript = [[
 --[[
     CodeAssist Advanced AI Module
     Real AI-powered code generation using Groq API
@@ -350,27 +357,19 @@ AdvancedAI.Config = {
     apiUrl = "https://api.groq.com/openai/v1/chat/completions",
     model = "llama-3.1-70b-versatile",
     temperature = 0.7,
-    maxTokens = 8192,
+    maxTokens = 4096,
     topP = 0.9,
     apiKey = "" -- Set your API key in plugin settings
 }
 
 function AdvancedAI:LoadConfig()
-    local Plugin = plugin or getfenv().plugin
-    if Plugin then
-        local success, apiKey = pcall(function()
-            return Plugin:GetSetting("CodeAssist_APIKey")
-        end)
-        if success and apiKey then
-            self.Config.apiKey = apiKey
-            return true
-        end
-    end
+    -- LoadConfig is deprecated - API key should be set by main plugin script via SetAPIKey
+    -- This function is kept for backward compatibility but no longer accesses plugin
     return false
 end
 
 function AdvancedAI:BuildExpertSystemPrompt()
-    return [[You are the world's foremost Roblox development expert with 15+ years of experience. Generate production-ready, optimized code for Roblox games.]]
+    return "You are the world's foremost Roblox development expert with 15+ years of experience. Generate production-ready, optimized code for Roblox games."
 end
 
 function AdvancedAI:GenerateFullGame(gameDescription, requirements)
@@ -386,11 +385,11 @@ function AdvancedAI:GenerateSystem(systemType, specifications)
 end
 
 function AdvancedAI:CallGroqAPI(systemPrompt, userPrompt)
-    if not self.Config.apiKey then
+    if not self.Config.apiKey or self.Config.apiKey == "" then
         self:LoadConfig()
     end
     
-    if not self.Config.apiKey then
+    if not self.Config.apiKey or self.Config.apiKey == "" then
         return nil, "API key not configured. Please set your Groq API key in plugin settings."
     end
     
@@ -417,7 +416,11 @@ function AdvancedAI:CallGroqAPI(systemPrompt, userPrompt)
         })
     end)
     
-    if success and response.Success then
+    if not success then
+        return nil, "API request failed: " .. tostring(response)
+    end
+    
+    if response.Success then
         local data = HttpService:JSONDecode(response.Body)
         if data.choices and data.choices[1] then
             return data.choices[1].message.content
@@ -425,7 +428,7 @@ function AdvancedAI:CallGroqAPI(systemPrompt, userPrompt)
         return nil, "Invalid API response format"
     end
     
-    return nil, "API request failed: " .. (response.Body or "Unknown error")
+    return nil, "API request failed: " .. tostring(response.Body)
 end
 
 function AdvancedAI:SetAPIKey(apiKey)
@@ -441,11 +444,11 @@ end
 return AdvancedAI
 ]]
 
-    print("✅ Plugin structure created successfully")
-    print("📝 Please copy the scripts above into your plugin")
-    print("🔑 Don't forget to set your Groq API key in plugin settings")
-    
-    return true
+print("✅ Plugin structure created successfully")
+print("📝 Please copy the scripts above into your plugin")
+print("🔑 Don't forget to set your Groq API key in plugin settings")
+
+return true
 end
 
 -- Run installation
