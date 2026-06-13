@@ -15,12 +15,10 @@ local function CreatePlugin()
         return false
     end
     
-    -- Create the plugin folder structure
-    local pluginFolder = Instance.new("Folder")
-    pluginFolder.Name = "CodeAssist"
+    print("Creating plugin structure...")
     
-    -- Create CodeAssist.lua (main plugin script)
-    local codeAssistScript = [[
+    -- Create the main plugin script
+    local pluginScript = [[
 --[[
     CodeAssist - Advanced AI Assistant for Roblox Developers
     Version: 1.0.0
@@ -342,8 +340,8 @@ end)
 print("CodeAssist Plugin Loaded Successfully!")
 ]]
 
--- Create AdvancedAI.lua
-local advancedAIScript = [[
+    -- Create AdvancedAI module script
+    local advancedAIScript = [[
 --[[
     CodeAssist Advanced AI Module
     Real AI-powered code generation using Groq API
@@ -444,11 +442,23 @@ end
 return AdvancedAI
 ]]
 
-print("✅ Plugin structure created successfully")
-print("📝 Please copy the scripts above into your plugin")
-print("🔑 Don't forget to set your Groq API key in plugin settings")
-
-return true
+    print("✅ Plugin scripts generated successfully")
+    print("📝 Please copy these scripts into your Roblox Studio plugin:")
+    print("")
+    print("1. Create a new Plugin in Roblox Studio")
+    print("2. Create a Script named 'CodeAssist.lua' with the main plugin script")
+    print("3. Create a ModuleScript named 'AdvancedAI.lua' with the AI module")
+    print("4. Set your Groq API key in plugin settings")
+    print("")
+    print("=== MAIN PLUGIN SCRIPT (CodeAssist.lua) ===")
+    print(pluginScript)
+    print("")
+    print("=== AI MODULE SCRIPT (AdvancedAI.lua) ===")
+    print(advancedAIScript)
+    print("")
+    print("🔑 Don't forget to set your Groq API key in plugin settings!")
+    
+    return true
 end
 
 -- Run installation
