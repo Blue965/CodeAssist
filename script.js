@@ -251,16 +251,518 @@ document.head.appendChild(style);
 // Download plugin function
 function downloadPlugin() {
     // Plugin script content
-    const pluginScript = "--[[\\n    CodeAssist - Advanced AI Assistant for Roblox Developers\\n    Version: 1.0.0\\n]]\\n\\nlocal Plugin = plugin\\nif not Plugin then\\n    error(\"CodeAssist must be run as a Roblox Studio plugin\")\\nend\\n\\nlocal HttpService = game:GetService(\"HttpService\")\\nlocal ChangeHistoryService = game:GetService(\"ChangeHistoryService\")\\nlocal Selection = game:GetService(\"Selection\")\\n\\n-- Create UI\\nlocal Toolbar = Plugin:CreateToolbar(\"CodeAssist\")\\nlocal DockWidgetPluginGuiInfo = DockWidgetPluginGuiInfo.new(\\n    Enum.InitialDockState.Right,\\n    false,\\n    false,\\n    400,\\n    600,\\n    400,\\n    600\\n)\\n\\nlocal CodeAssistWidget = Plugin:CreateDockWidgetPluginGui(\\n    \"CodeAssistWidget\",\\n    DockWidgetPluginGuiInfo\\n)\\n\\nCodeAssistWidget.Title = \"CodeAssist AI\"\\nCodeAssistWidget.Name = \"CodeAssistWidget\"\\n\\n-- Create UI elements\\nlocal ScreenGui = Instance.new(\"ScreenGui\")\\nScreenGui.Parent = CodeAssistWidget\\n\\nlocal MainFrame = Instance.new(\"Frame\")\\nMainFrame.Size = UDim2.new(1, 0, 1, 0)\\nMainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)\\nMainFrame.BorderSizePixel = 0\\nMainFrame.Parent = ScreenGui\\n\\n-- Header\\nlocal Header = Instance.new(\"Frame\")\\nHeader.Size = UDim2.new(1, 0, 0, 60)\\nHeader.BackgroundColor3 = Color3.fromRGB(0, 102, 255)\\nHeader.BorderSizePixel = 0\\nHeader.Parent = MainFrame\\n\\nlocal HeaderText = Instance.new(\"TextLabel\")\\nHeaderText.Size = UDim2.new(1, -20, 1, 0)\\nHeaderText.Position = UDim2.new(0, 10, 0, 0)\\nHeaderText.BackgroundTransparency = 1\\nHeaderText.Text = \"CodeAssist AI\"\\nHeaderText.TextColor3 = Color3.fromRGB(255, 255, 255)\\nHeaderText.TextSize = 24\\nHeaderText.Font = Enum.Font.GothamBold\\nHeaderText.TextXAlignment = Enum.TextXAlignment.Left\\nHeaderText.Parent = Header\\n\\n-- Content Frame\\nlocal ContentFrame = Instance.new(\"Frame\")\\nContentFrame.Size = UDim2.new(1, -20, 1, -70)\\nContentFrame.Position = UDim2.new(0, 10, 0, 65)\\nContentFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)\\nContentFrame.BorderSizePixel = 0\\nContentFrame.Parent = MainFrame\\n\\n-- Input Section\\nlocal InputLabel = Instance.new(\"TextLabel\")\\nInputLabel.Size = UDim2.new(1, 0, 0, 30)\\nInputLabel.Position = UDim2.new(0, 0, 0, 10)\\nInputLabel.BackgroundTransparency = 1\\nInputLabel.Text = \"Describe what you want to create:\"\\nInputLabel.TextColor3 = Color3.fromRGB(200, 200, 200)\\nInputLabel.TextSize = 14\\nInputLabel.Font = Enum.Font.Gotham\\nInputLabel.TextXAlignment = Enum.TextXAlignment.Left\\nInputLabel.Parent = ContentFrame\\n\\nlocal InputBox = Instance.new(\"TextBox\")\\nInputBox.Size = UDim2.new(1, 0, 0, 100)\\nInputBox.Position = UDim2.new(0, 0, 0, 45)\\nInputBox.BackgroundColor3 = Color3.fromRGB(50, 50, 60)\\nInputBox.BorderSizePixel = 0\\nInputBox.Text = \"\"\\nInputBox.PlaceholderText = \"e.g., Create a player health system with regeneration...\"\\nInputBox.TextColor3 = Color3.fromRGB(255, 255, 255)\\nInputBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)\\nInputBox.TextSize = 14\\nInputBox.Font = Enum.Font.Gotham\\nInputBox.TextXAlignment = Enum.TextXAlignment.Left\\nInputBox.TextYAlignment = Enum.TextYAlignment.Top\\nInputBox.ClearTextOnFocus = false\\nInputBox.MultiLine = true\\nInputBox.Parent = ContentFrame\\n\\nlocal InputPadding = Instance.new(\"UIPadding\")\\nInputPadding.PaddingTop = UDim.new(0, 10)\\nInputPadding.PaddingLeft = UDim.new(0, 10)\\nInputPadding.PaddingRight = UDim.new(0, 10)\\nInputPadding.Parent = InputBox\\n\\n-- Generate Button\\nlocal GenerateButton = Instance.new(\"TextButton\")\\nGenerateButton.Size = UDim2.new(1, 0, 0, 40)\\nGenerateButton.Position = UDim2.new(0, 0, 0, 155)\\nGenerateButton.BackgroundColor3 = Color3.fromRGB(0, 102, 255)\\nGenerateButton.BorderSizePixel = 0\\nGenerateButton.Text = \"Generate Code\"\\nGenerateButton.TextColor3 = Color3.fromRGB(255, 255, 255)\\nGenerateButton.TextSize = 16\\nGenerateButton.Font = Enum.Font.GothamBold\\nGenerateButton.Parent = ContentFrame\\n\\nlocal GenerateCorner = Instance.new(\"UICorner\")\\nGenerateCorner.CornerRadius = UDim.new(0, 8)\\nGenerateCorner.Parent = GenerateButton\\n\\n-- Output Section\\nlocal OutputLabel = Instance.new(\"TextLabel\")\\nOutputLabel.Size = UDim2.new(1, 0, 0, 30)\\nOutputLabel.Position = UDim2.new(0, 0, 0, 205)\\nOutputLabel.BackgroundTransparency = 1\\nOutputLabel.Text = \"Generated Code:\"\\nOutputLabel.TextColor3 = Color3.fromRGB(200, 200, 200)\\nOutputLabel.TextSize = 14\\nOutputLabel.Font = Enum.Font.Gotham\\nOutputLabel.TextXAlignment = Enum.TextXAlignment.Left\\nOutputLabel.Parent = ContentFrame\\n\\nlocal OutputBox = Instance.new(\"TextBox\")\\nOutputBox.Size = UDim2.new(1, 0, 1, -250)\\nOutputBox.Position = UDim2.new(0, 0, 0, 240)\\nOutputBox.BackgroundColor3 = Color3.fromRGB(35, 35, 45)\\nOutputBox.BorderSizePixel = 0\\nOutputBox.Text = \"\"\\nOutputBox.TextColor3 = Color3.fromRGB(220, 220, 220)\\nOutputBox.TextSize = 13\\nOutputBox.Font = Enum.Font.Code\\nOutputBox.TextXAlignment = Enum.TextXAlignment.Left\\nOutputBox.TextYAlignment = Enum.TextYAlignment.Top\\nOutputBox.ClearTextOnFocus = false\\nOutputBox.MultiLine = true\\nOutputBox.Parent = ContentFrame\\n\\nlocal OutputPadding = Instance.new(\"UIPadding\")\\nOutputPadding.PaddingTop = UDim.new(0, 10)\\nOutputPadding.PaddingLeft = UDim.new(0, 10)\\nOutputPadding.PaddingRight = UDim.new(0, 10)\\nOutputPadding.Parent = OutputBox\\n\\n-- Action Buttons\\nlocal ActionButtonsFrame = Instance.new(\"Frame\")\\nActionButtonsFrame.Size = UDim2.new(1, 0, 0, 120)\\nActionButtonsFrame.Position = UDim2.new(0, 0, 1, -125)\\nActionButtonsFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)\\nActionButtonsFrame.BorderSizePixel = 0\\nActionButtonsFrame.Parent = ContentFrame\\n\\nlocal FullGameButton = Instance.new(\"TextButton\")\\nFullGameButton.Size = UDim2.new(1, -10, 0, 35)\\nFullGameButton.Position = UDim2.new(0, 5, 0, 5)\\nFullGameButton.BackgroundColor3 = Color3.fromRGB(0, 102, 255)\\nFullGameButton.BorderSizePixel = 0\\nFullGameButton.Text = \"Generate Full Game\"\\nFullGameButton.TextColor3 = Color3.fromRGB(255, 255, 255)\\nFullGameButton.TextSize = 14\\nFullGameButton.Font = Enum.Font.GothamBold\\nFullGameButton.Parent = ActionButtonsFrame\\n\\nlocal FullGameCorner = Instance.new(\"UICorner\")\\nFullGameCorner.CornerRadius = UDim.new(0, 6)\\nFullGameCorner.Parent = FullGameButton\\n\\nlocal CopyButton = Instance.new(\"TextButton\")\\nCopyButton.Size = UDim2.new(0.48, -5, 0, 30)\\nCopyButton.Position = UDim2.new(0, 5, 0, 85)\\nCopyButton.BackgroundColor3 = Color3.fromRGB(60, 60, 70)\\nCopyButton.BorderSizePixel = 0\\nCopyButton.Text = \"Copy to Clipboard\"\\nCopyButton.TextColor3 = Color3.fromRGB(255, 255, 255)\\nCopyButton.TextSize = 13\\nCopyButton.Font = Enum.Font.Gotham\\nCopyButton.Parent = ActionButtonsFrame\\n\\nlocal CopyCorner = Instance.new(\"UICorner\")\\nCopyCorner.CornerRadius = UDim.new(0, 6)\\nCopyCorner.Parent = CopyButton\\n\\nlocal InsertButton = Instance.new(\"TextButton\")\\nInsertButton.Size = UDim2.new(0.48, -5, 0, 30)\\nInsertButton.Position = UDim2.new(0.52, 5, 0, 85)\\nInsertButton.BackgroundColor3 = Color3.fromRGB(0, 150, 100)\\nInsertButton.BorderSizePixel = 0\\nInsertButton.Text = \"Insert to Script\"\\nInsertButton.TextColor3 = Color3.fromRGB(255, 255, 255)\\nInsertButton.TextSize = 13\\nInsertButton.Font = Enum.Font.Gotham\\nInsertButton.Parent = ActionButtonsFrame\\n\\nlocal InsertCorner = Instance.new(\"UICorner\")\\nInsertCorner.CornerRadius = UDim.new(0, 6)\\nInsertCorner.Parent = InsertButton\\n\\n-- Toolbar Buttons\\nlocal GenerateButtonToolbar = Toolbar:CreateButton(\"Generate Code\", \"Generate AI code\", \"rbxassetid://0\")\\nlocal FullGameToolbar = Toolbar:CreateButton(\"Full Game\", \"Generate complete game with AI\", \"rbxassetid://0\")\\n\\n-- Load Advanced AI Module\\nlocal AdvancedAI = require(script.Parent.AdvancedAI)\\n\\n-- Load API key from plugin settings and pass to module\\nlocal success, apiKey = pcall(function()\\n    return Plugin:GetSetting(\"CodeAssist_APIKey\")\\nend)\\nif success and apiKey and apiKey ~= \"\" then\\n    AdvancedAI:SetAPIKey(apiKey)\\nend\\n\\n-- AI Functions\\nlocal AIService = {}\\n\\nfunction AIService:GenerateCode(prompt)\\n    return AdvancedAI:GenerateSystem(\"custom\", prompt)\\nend\\n\\nfunction AIService:GenerateFullGame(gameDescription, requirements)\\n    return AdvancedAI:GenerateFullGame(gameDescription, requirements)\\nend\\n\\n-- Event Handlers\\nGenerateButton.MouseButton1Click:Connect(function()\\n    local userInput = InputBox.Text\\n    if userInput == \"\" or userInput == \" \" then\\n        OutputBox.Text = \"Please enter a description of what you want to create.\"\\n        return\\n    end\\n    \\n    OutputBox.Text = \"Generating code... Please wait.\"\\n    GenerateButton.Text = \"Generating...\"\\n    GenerateButton.Active = false\\n    \\n    local success, result = AIService:GenerateCode(userInput)\\n    \\n    if success then\\n        OutputBox.Text = result\\n    else\\n        OutputBox.Text = \"Error: \" .. (result or \"Unknown error\")\\n    end\\n    \\n    GenerateButton.Text = \"Generate Code\"\\n    GenerateButton.Active = true\\nend)\\n\\nFullGameButton.MouseButton1Click:Connect(function()\\n    local gameDescription = InputBox.Text\\n    if gameDescription == \"\" or gameDescription == \" \" then\\n        OutputBox.Text = \"Please describe the game you want to create.\"\\n        return\\n    end\\n    \\n    OutputBox.Text = \"Generating complete game... This may take a while.\"\\n    FullGameButton.Text = \"Generating...\"\\n    FullGameButton.Active = false\\n    \\n    local requirements = \"Production-ready, optimized for performance, includes multiplayer support\"\\n    local success, result = AIService:GenerateFullGame(gameDescription, requirements)\\n    \\n    if success then\\n        OutputBox.Text = result\\n    else\\n        OutputBox.Text = \"Error: \" .. (result or \"Unknown error\")\\n    end\\n    \\n    FullGameButton.Text = \"Generate Full Game\"\\n    FullGameButton.Active = true\\nend)\\n\\nCopyButton.MouseButton1Click:Connect(function()\\n    if OutputBox.Text ~= \"\" then\\n        HttpService:ClipboardSet(OutputBox.Text)\\n        CopyButton.Text = \"Copied!\"\\n        task.wait(1)\\n        CopyButton.Text = \"Copy to Clipboard\"\\n    end\\nend)\\n\\nInsertButton.MouseButton1Click:Connect(function()\\n    local selected = Selection:Get()\\n    if #selected > 0 then\\n        local selectedObject = selected[1]\\n        if selectedObject:IsA(\"Script\") or selectedObject:IsA(\"LocalScript\") or selectedObject:IsA(\"ModuleScript\") then\\n            ChangeHistoryService:SetWaypoint(\"Before CodeAssist Insert\")\\n            selectedObject.Source = selectedObject.Source .. \"\\\\n\\\\n\" .. OutputBox.Text\\n            ChangeHistoryService:SetWaypoint(\"After CodeAssist Insert\")\\n            InsertButton.Text = \"Inserted!\"\\n            task.wait(1)\\n            InsertButton.Text = \"Insert to Script\"\\n        else\\n            warn(\"Selected object is not a script\")\\n        end\\n    else\\n        warn(\"No object selected\")\\n    end\\nend)\\n\\nGenerateButtonToolbar.Click:Connect(function()\\n    CodeAssistWidget.Enabled = not CodeAssistWidget.Enabled\\nend)\\n\\nFullGameToolbar.Click:Connect(function()\\n    CodeAssistWidget.Enabled = true\\n    FullGameButton:Activate()\\nend)\\n\\nprint(\"CodeAssist Plugin Loaded Successfully!\")";
+    const pluginScript = `--[[
+    CodeAssist - Advanced AI Assistant for Roblox Developers
+    Version: 1.0.0
+]]
+
+local Plugin = plugin
+if not Plugin then
+    error("CodeAssist must be run as a Roblox Studio plugin")
+end
+
+local HttpService = game:GetService("HttpService")
+local ChangeHistoryService = game:GetService("ChangeHistoryService")
+local Selection = game:GetService("Selection")
+
+-- Create UI
+local Toolbar = Plugin:CreateToolbar("CodeAssist")
+local DockWidgetPluginGuiInfo = DockWidgetPluginGuiInfo.new(
+    Enum.InitialDockState.Right,
+    false,
+    false,
+    400,
+    600,
+    400,
+    600
+)
+
+local CodeAssistWidget = Plugin:CreateDockWidgetPluginGui(
+    "CodeAssistWidget",
+    DockWidgetPluginGuiInfo
+)
+
+CodeAssistWidget.Title = "CodeAssist AI"
+CodeAssistWidget.Name = "CodeAssistWidget"
+
+-- Create UI elements
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = CodeAssistWidget
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(1, 0, 1, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = ScreenGui
+
+-- Header
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1, 0, 0, 60)
+Header.BackgroundColor3 = Color3.fromRGB(0, 102, 255)
+Header.BorderSizePixel = 0
+Header.Parent = MainFrame
+
+local HeaderText = Instance.new("TextLabel")
+HeaderText.Size = UDim2.new(1, -20, 1, 0)
+HeaderText.Position = UDim2.new(0, 10, 0, 0)
+HeaderText.BackgroundTransparency = 1
+HeaderText.Text = "CodeAssist AI"
+HeaderText.TextColor3 = Color3.fromRGB(255, 255, 255)
+HeaderText.TextSize = 24
+HeaderText.Font = Enum.Font.GothamBold
+HeaderText.TextXAlignment = Enum.TextXAlignment.Left
+HeaderText.Parent = Header
+
+-- Content Frame
+local ContentFrame = Instance.new("Frame")
+ContentFrame.Size = UDim2.new(1, -20, 1, -70)
+ContentFrame.Position = UDim2.new(0, 10, 0, 65)
+ContentFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+ContentFrame.BorderSizePixel = 0
+ContentFrame.Parent = MainFrame
+
+-- Input Section
+local InputLabel = Instance.new("TextLabel")
+InputLabel.Size = UDim2.new(1, 0, 0, 30)
+InputLabel.Position = UDim2.new(0, 0, 0, 10)
+InputLabel.BackgroundTransparency = 1
+InputLabel.Text = "Describe what you want to create:"
+InputLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+InputLabel.TextSize = 14
+InputLabel.Font = Enum.Font.Gotham
+InputLabel.TextXAlignment = Enum.TextXAlignment.Left
+InputLabel.Parent = ContentFrame
+
+local InputBox = Instance.new("TextBox")
+InputBox.Size = UDim2.new(1, 0, 0, 100)
+InputBox.Position = UDim2.new(0, 0, 0, 45)
+InputBox.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+InputBox.BorderSizePixel = 0
+InputBox.Text = ""
+InputBox.PlaceholderText = "e.g., Create a player health system with regeneration..."
+InputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+InputBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+InputBox.TextSize = 14
+InputBox.Font = Enum.Font.Gotham
+InputBox.TextXAlignment = Enum.TextXAlignment.Left
+InputBox.TextYAlignment = Enum.TextYAlignment.Top
+InputBox.ClearTextOnFocus = false
+InputBox.MultiLine = true
+InputBox.Parent = ContentFrame
+
+local InputPadding = Instance.new("UIPadding")
+InputPadding.PaddingTop = UDim.new(0, 10)
+InputPadding.PaddingLeft = UDim.new(0, 10)
+InputPadding.PaddingRight = UDim.new(0, 10)
+InputPadding.Parent = InputBox
+
+-- Generate Button
+local GenerateButton = Instance.new("TextButton")
+GenerateButton.Size = UDim2.new(1, 0, 0, 40)
+GenerateButton.Position = UDim2.new(0, 0, 0, 155)
+GenerateButton.BackgroundColor3 = Color3.fromRGB(0, 102, 255)
+GenerateButton.BorderSizePixel = 0
+GenerateButton.Text = "Generate Code"
+GenerateButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+GenerateButton.TextSize = 16
+GenerateButton.Font = Enum.Font.GothamBold
+GenerateButton.Parent = ContentFrame
+
+local GenerateCorner = Instance.new("UICorner")
+GenerateCorner.CornerRadius = UDim.new(0, 8)
+GenerateCorner.Parent = GenerateButton
+
+-- Output Section
+local OutputLabel = Instance.new("TextLabel")
+OutputLabel.Size = UDim2.new(1, 0, 0, 30)
+OutputLabel.Position = UDim2.new(0, 0, 0, 205)
+OutputLabel.BackgroundTransparency = 1
+OutputLabel.Text = "Generated Code:"
+OutputLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+OutputLabel.TextSize = 14
+OutputLabel.Font = Enum.Font.Gotham
+OutputLabel.TextXAlignment = Enum.TextXAlignment.Left
+OutputLabel.Parent = ContentFrame
+
+local OutputBox = Instance.new("TextBox")
+OutputBox.Size = UDim2.new(1, 0, 1, -250)
+OutputBox.Position = UDim2.new(0, 0, 0, 240)
+OutputBox.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+OutputBox.BorderSizePixel = 0
+OutputBox.Text = ""
+OutputBox.TextColor3 = Color3.fromRGB(220, 220, 220)
+OutputBox.TextSize = 13
+OutputBox.Font = Enum.Font.Code
+OutputBox.TextXAlignment = Enum.TextXAlignment.Left
+OutputBox.TextYAlignment = Enum.TextYAlignment.Top
+OutputBox.ClearTextOnFocus = false
+OutputBox.MultiLine = true
+OutputBox.Parent = ContentFrame
+
+local OutputPadding = Instance.new("UIPadding")
+OutputPadding.PaddingTop = UDim.new(0, 10)
+OutputPadding.PaddingLeft = UDim.new(0, 10)
+OutputPadding.PaddingRight = UDim.new(0, 10)
+OutputPadding.Parent = OutputBox
+
+-- Action Buttons
+local ActionButtonsFrame = Instance.new("Frame")
+ActionButtonsFrame.Size = UDim2.new(1, 0, 0, 120)
+ActionButtonsFrame.Position = UDim2.new(0, 0, 1, -125)
+ActionButtonsFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+ActionButtonsFrame.BorderSizePixel = 0
+ActionButtonsFrame.Parent = ContentFrame
+
+local FullGameButton = Instance.new("TextButton")
+FullGameButton.Size = UDim2.new(1, -10, 0, 35)
+FullGameButton.Position = UDim2.new(0, 5, 0, 5)
+FullGameButton.BackgroundColor3 = Color3.fromRGB(0, 102, 255)
+FullGameButton.BorderSizePixel = 0
+FullGameButton.Text = "Generate Full Game"
+FullGameButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+FullGameButton.TextSize = 14
+FullGameButton.Font = Enum.Font.GothamBold
+FullGameButton.Parent = ActionButtonsFrame
+
+local FullGameCorner = Instance.new("UICorner")
+FullGameCorner.CornerRadius = UDim.new(0, 6)
+FullGameCorner.Parent = FullGameButton
+
+local CopyButton = Instance.new("TextButton")
+CopyButton.Size = UDim2.new(0.48, -5, 0, 30)
+CopyButton.Position = UDim2.new(0, 5, 0, 85)
+CopyButton.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+CopyButton.BorderSizePixel = 0
+CopyButton.Text = "Copy to Clipboard"
+CopyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CopyButton.TextSize = 13
+CopyButton.Font = Enum.Font.Gotham
+CopyButton.Parent = ActionButtonsFrame
+
+local CopyCorner = Instance.new("UICorner")
+CopyCorner.CornerRadius = UDim.new(0, 6)
+CopyCorner.Parent = CopyButton
+
+local InsertButton = Instance.new("TextButton")
+InsertButton.Size = UDim2.new(0.48, -5, 0, 30)
+InsertButton.Position = UDim2.new(0.52, 5, 0, 85)
+InsertButton.BackgroundColor3 = Color3.fromRGB(0, 150, 100)
+InsertButton.BorderSizePixel = 0
+InsertButton.Text = "Insert to Script"
+InsertButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+InsertButton.TextSize = 13
+InsertButton.Font = Enum.Font.Gotham
+InsertButton.Parent = ActionButtonsFrame
+
+local InsertCorner = Instance.new("UICorner")
+InsertCorner.CornerRadius = UDim.new(0, 6)
+InsertCorner.Parent = InsertButton
+
+-- Toolbar Buttons
+local GenerateButtonToolbar = Toolbar:CreateButton("Generate Code", "Generate AI code", "rbxassetid://0")
+local FullGameToolbar = Toolbar:CreateButton("Full Game", "Generate complete game with AI", "rbxassetid://0")
+
+-- Load Advanced AI Module
+local AdvancedAI = require(script.Parent.AdvancedAI)
+
+-- Load API key from plugin settings and pass to module
+local success, apiKey = pcall(function()
+    return Plugin:GetSetting("CodeAssist_APIKey")
+end)
+if success and apiKey and apiKey ~= "" then
+    AdvancedAI:SetAPIKey(apiKey)
+end
+
+-- AI Functions
+local AIService = {}
+
+function AIService:GenerateCode(prompt)
+    return AdvancedAI:GenerateSystem("custom", prompt)
+end
+
+function AIService:GenerateFullGame(gameDescription, requirements)
+    return AdvancedAI:GenerateFullGame(gameDescription, requirements)
+end
+
+-- Event Handlers
+GenerateButton.MouseButton1Click:Connect(function()
+    local userInput = InputBox.Text
+    if userInput == "" or userInput == " " then
+        OutputBox.Text = "Please enter a description of what you want to create."
+        return
+    end
+    
+    OutputBox.Text = "Generating code... Please wait."
+    GenerateButton.Text = "Generating..."
+    GenerateButton.Active = false
+    
+    local success, result = AIService:GenerateCode(userInput)
+    
+    if success then
+        OutputBox.Text = result
+    else
+        OutputBox.Text = "Error: " .. (result or "Unknown error")
+    end
+    
+    GenerateButton.Text = "Generate Code"
+    GenerateButton.Active = true
+end)
+
+FullGameButton.MouseButton1Click:Connect(function()
+    local gameDescription = InputBox.Text
+    if gameDescription == "" or gameDescription == " " then
+        OutputBox.Text = "Please describe the game you want to create."
+        return
+    end
+    
+    OutputBox.Text = "Generating complete game... This may take a while."
+    FullGameButton.Text = "Generating..."
+    FullGameButton.Active = false
+    
+    local requirements = "Production-ready, optimized for performance, includes multiplayer support"
+    local success, result = AIService:GenerateFullGame(gameDescription, requirements)
+    
+    if success then
+        OutputBox.Text = result
+    else
+        OutputBox.Text = "Error: " .. (result or "Unknown error")
+    end
+    
+    FullGameButton.Text = "Generate Full Game"
+    FullGameButton.Active = true
+end)
+
+CopyButton.MouseButton1Click:Connect(function()
+    if OutputBox.Text ~= "" then
+        HttpService:ClipboardSet(OutputBox.Text)
+        CopyButton.Text = "Copied!"
+        task.wait(1)
+        CopyButton.Text = "Copy to Clipboard"
+    end
+end)
+
+InsertButton.MouseButton1Click:Connect(function()
+    local selected = Selection:Get()
+    if #selected > 0 then
+        local selectedObject = selected[1]
+        if selectedObject:IsA("Script") or selectedObject:IsA("LocalScript") or selectedObject:IsA("ModuleScript") then
+            ChangeHistoryService:SetWaypoint("Before CodeAssist Insert")
+            selectedObject.Source = selectedObject.Source .. "\\n\\n" .. OutputBox.Text
+            ChangeHistoryService:SetWaypoint("After CodeAssist Insert")
+            InsertButton.Text = "Inserted!"
+            task.wait(1)
+            InsertButton.Text = "Insert to Script"
+        else
+            warn("Selected object is not a script")
+        end
+    else
+        warn("No object selected")
+    end
+end)
+
+GenerateButtonToolbar.Click:Connect(function()
+    CodeAssistWidget.Enabled = not CodeAssistWidget.Enabled
+end)
+
+FullGameToolbar.Click:Connect(function()
+    CodeAssistWidget.Enabled = true
+    FullGameButton:Activate()
+end)
+
+print("CodeAssist Plugin Loaded Successfully!")`;
 
     // AdvancedAI module content
-    const advancedAIScript = "--[[\\n    CodeAssist Advanced AI Module\\n    Real AI-powered code generation using Groq API\\n]]\\n\\nlocal HttpService = game:GetService(\"HttpService\")\\n\\nlocal AdvancedAI = {}\\n\\nAdvancedAI.Config = {\\n    apiUrl = \"https://api.groq.com/openai/v1/chat/completions\",\\n    model = \"llama-3.1-70b-versatile\",\\n    temperature = 0.7,\\n    maxTokens = 4096,\\n    topP = 0.9,\\n    apiKey = \"\" -- Set your API key in plugin settings\\n}\\n\\nfunction AdvancedAI:LoadConfig()\\n    -- LoadConfig is deprecated - API key should be set by main plugin script via SetAPIKey\\n    -- This function is kept for backward compatibility but no longer accesses plugin\\n    return false\\nend\\n\\nfunction AdvancedAI:BuildExpertSystemPrompt()\\n    return \"You are the world's foremost Roblox development expert with 15+ years of experience. Generate production-ready, optimized code for Roblox games.\"\\nend\\n\\nfunction AdvancedAI:GenerateFullGame(gameDescription, requirements)\\n    local systemPrompt = self:BuildExpertSystemPrompt()\\n    local userPrompt = string.format(\"Generate a complete Roblox game: %s\\\\nRequirements: %s\", gameDescription, requirements or \"Standard requirements\")\\n    return self:CallGroqAPI(systemPrompt, userPrompt)\\nend\\n\\nfunction AdvancedAI:GenerateSystem(systemType, specifications)\\n    local systemPrompt = self:BuildExpertSystemPrompt()\\n    local userPrompt = string.format(\"Generate a %s system: %s\", systemType, specifications or \"Standard requirements\")\\n    return self:CallGroqAPI(systemPrompt, userPrompt)\\nend\\n\\nfunction AdvancedAI:CallGroqAPI(systemPrompt, userPrompt)\\n    if not self.Config.apiKey or self.Config.apiKey == \"\" then\\n        self:LoadConfig()\\n    end\\n    \\n    if not self.Config.apiKey or self.Config.apiKey == \"\" then\\n        return nil, \"API key not configured. Please set your Groq API key in plugin settings.\"\\n    end\\n    \\n    local requestBody = {\\n        model = self.Config.model,\\n        messages = {\\n            {role = \"system\", content = systemPrompt},\\n            {role = \"user\", content = userPrompt}\\n        },\\n        temperature = self.Config.temperature,\\n        max_tokens = self.Config.maxTokens,\\n        top_p = self.Config.topP\\n    }\\n    \\n    local success, response = pcall(function()\\n        return HttpService:RequestAsync({\\n            Url = self.Config.apiUrl,\\n            Method = \"POST\",\\n            Headers = {\\n                [\"Content-Type\"] = \"application/json\",\\n                [\"Authorization\"] = \"Bearer \" .. self.Config.apiKey\\n            },\\n            Body = HttpService:JSONEncode(requestBody)\\n        })\\n    end)\\n    \\n    if not success then\\n        return nil, \"API request failed: \" .. tostring(response)\\n    end\\n    \\n    if response.Success then\\n        local data = HttpService:JSONDecode(response.Body)\\n        if data.choices and data.choices[1] then\\n            return data.choices[1].message.content\\n        end\\n        return nil, \"Invalid API response format\"\\n    end\\n    \\n    return nil, \"API request failed: \" .. tostring(response.Body)\\nend\\n\\nfunction AdvancedAI:SetAPIKey(apiKey)\\n    self.Config.apiKey = apiKey\\n    local Plugin = plugin or getfenv().plugin\\n    if Plugin then\\n        pcall(function()\\n            Plugin:SetSetting(\"CodeAssist_APIKey\", apiKey)\\n        end)\\n    end\\nend\\n\\nreturn AdvancedAI";
+    const advancedAIScript = `--[[
+    CodeAssist Advanced AI Module
+    Real AI-powered code generation using Groq API
+]]
+
+local HttpService = game:GetService("HttpService")
+
+local AdvancedAI = {}
+
+AdvancedAI.Config = {
+    apiUrl = "https://api.groq.com/openai/v1/chat/completions",
+    model = "llama-3.1-70b-versatile",
+    temperature = 0.7,
+    maxTokens = 4096,
+    topP = 0.9,
+    apiKey = "" -- Set your API key in plugin settings
+}
+
+function AdvancedAI:LoadConfig()
+    -- LoadConfig is deprecated - API key should be set by main plugin script via SetAPIKey
+    -- This function is kept for backward compatibility but no longer accesses plugin
+    return false
+end
+
+function AdvancedAI:BuildExpertSystemPrompt()
+    return "You are the world's foremost Roblox development expert with 15+ years of experience. Generate production-ready, optimized code for Roblox games."
+end
+
+function AdvancedAI:GenerateFullGame(gameDescription, requirements)
+    local systemPrompt = self:BuildExpertSystemPrompt()
+    local userPrompt = string.format("Generate a complete Roblox game: %s\\nRequirements: %s", gameDescription, requirements or "Standard requirements")
+    return self:CallGroqAPI(systemPrompt, userPrompt)
+end
+
+function AdvancedAI:GenerateSystem(systemType, specifications)
+    local systemPrompt = self:BuildExpertSystemPrompt()
+    local userPrompt = string.format("Generate a %s system: %s", systemType, specifications or "Standard requirements")
+    return self:CallGroqAPI(systemPrompt, userPrompt)
+end
+
+function AdvancedAI:CallGroqAPI(systemPrompt, userPrompt)
+    if not self.Config.apiKey or self.Config.apiKey == "" then
+        self:LoadConfig()
+    end
+    
+    if not self.Config.apiKey or self.Config.apiKey == "" then
+        return nil, "API key not configured. Please set your Groq API key in plugin settings."
+    end
+    
+    local requestBody = {
+        model = self.Config.model,
+        messages = {
+            {role = "system", content = systemPrompt},
+            {role = "user", content = userPrompt}
+        },
+        temperature = self.Config.temperature,
+        max_tokens = self.Config.maxTokens,
+        top_p = self.Config.topP
+    }
+    
+    local success, response = pcall(function()
+        return HttpService:RequestAsync({
+            Url = self.Config.apiUrl,
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json",
+                ["Authorization"] = "Bearer " .. self.Config.apiKey
+            },
+            Body = HttpService:JSONEncode(requestBody)
+        })
+    end)
+    
+    if not success then
+        return nil, "API request failed: " .. tostring(response)
+    end
+    
+    if response.Success then
+        local data = HttpService:JSONDecode(response.Body)
+        if data.choices and data.choices[1] then
+            return data.choices[1].message.content
+        end
+        return nil, "Invalid API response format"
+    end
+    
+    return nil, "API request failed: " .. tostring(response.Body)
+end
+
+function AdvancedAI:SetAPIKey(apiKey)
+    self.Config.apiKey = apiKey
+    local Plugin = plugin or getfenv().plugin
+    if Plugin then
+        pcall(function()
+            Plugin:SetSetting("CodeAssist_APIKey", apiKey)
+        end)
+    end
+end
+
+return AdvancedAI`;
 
     // README content
-    const readme = "# CodeAssist Plugin\\n\\nAdvanced AI Assistant for Roblox Developers - Version 1.0.0\\n\\n## Features\\n\\n- AI-powered code generation using Groq API\\n- Generate complete games and systems\\n- Code optimization and bug detection\\n- Integrated UI for Roblox Studio\\n- Copy and insert code directly to scripts\\n\\n## Installation\\n\\n1. Open Roblox Studio\\n2. Go to Plugins > Manage Plugins\\n3. Click \"Create New Plugin\"\\n4. Name it \"CodeAssist\"\\n5. Create a Script named \"CodeAssist.lua\" in the plugin folder\\n6. Create a ModuleScript named \"AdvancedAI.lua\" in the same folder\\n7. Copy the content from the respective files into these scripts\\n8. Save and restart Roblox Studio\\n\\n## Configuration\\n\\n### Setting up the Groq API Key\\n\\n1. Get your free API key at https://groq.com\\n2. In Roblox Studio, go to File > Plugin Settings\\n3. Find CodeAssist in the list\\n4. Enter your API key in the \"CodeAssist_APIKey\" field\\n5. Save the settings\\n\\n## Usage\\n\\n### Basic Code Generation\\n\\n1. Click the \"CodeAssist\" button in the toolbar\\n2. Enter a description of what you want to create\\n3. Click \"Generate Code\"\\n4. Copy or insert the generated code\\n\\n### Full Game Generation\\n\\n1. Click \"Generate Full Game\" in the plugin UI\\n2. Describe the game you want to create\\n3. Wait for the AI to generate the complete game\\n4. Review and implement the code\\n\\n## Requirements\\n\\n- Roblox Studio\\n- Groq API key (free at https://groq.com)\\n- Internet connection for API calls\\n\\n## Troubleshooting\\n\\n### \"API key not configured\" error\\n\\n- Make sure you've set your Groq API key in plugin settings\\n- Check that the API key is not empty\\n\\n### \"API request failed\" error\\n\\n- Check your internet connection\\n- Verify your Groq API key is valid\\n- Make sure HTTP requests are enabled in Roblox Studio\\n\\n## Support\\n\\nFor issues and questions, please refer to the documentation or contact support.\\n\\n## License\\n\\nThis plugin is provided as-is for educational and development purposes.\\n\\n---\\n\\nMade with ❤️ for Roblox developers";
+    const readme = `# CodeAssist Plugin
+
+Advanced AI Assistant for Roblox Developers - Version 1.0.0
+
+## Features
+
+- AI-powered code generation using Groq API
+- Generate complete games and systems
+- Code optimization and bug detection
+- Integrated UI for Roblox Studio
+- Copy and insert code directly to scripts
+
+## Installation
+
+1. Open Roblox Studio
+2. Go to Plugins > Manage Plugins
+3. Click "Create New Plugin"
+4. Name it "CodeAssist"
+5. Create a Script named "CodeAssist.lua" in the plugin folder
+6. Create a ModuleScript named "AdvancedAI.lua" in the same folder
+7. Copy the content from the respective files into these scripts
+8. Save and restart Roblox Studio
+
+## Configuration
+
+### Setting up the Groq API Key
+
+1. Get your free API key at https://groq.com
+2. In Roblox Studio, go to File > Plugin Settings
+3. Find CodeAssist in the list
+4. Enter your API key in the "CodeAssist_APIKey" field
+5. Save the settings
+
+## Usage
+
+### Basic Code Generation
+
+1. Click the "CodeAssist" button in the toolbar
+2. Enter a description of what you want to create
+3. Click "Generate Code"
+4. Copy or insert the generated code
+
+### Full Game Generation
+
+1. Click "Generate Full Game" in the plugin UI
+2. Describe the game you want to create
+3. Wait for the AI to generate the complete game
+4. Review and implement the code
+
+## Requirements
+
+- Roblox Studio
+- Groq API key (free at https://groq.com)
+- Internet connection for API calls
+
+## Troubleshooting
+
+### "API key not configured" error
+
+- Make sure you've set your Groq API key in plugin settings
+- Check that the API key is not empty
+
+### "API request failed" error
+
+- Check your internet connection
+- Verify your Groq API key is valid
+- Make sure HTTP requests are enabled in Roblox Studio
+
+## Support
+
+For issues and questions, please refer to the documentation or contact support.
+
+## License
+
+This plugin is provided as-is for educational and development purposes.
+
+---
+
+Made with ❤️ for Roblox developers`;
 
     // Create a text file with all content
-    const content = "=== CodeAssist Plugin - Version 1.0.0 ===\\n\\n=== FILE: CodeAssist.lua (Main Plugin Script) ===\\n" + pluginScript + "\\n\\n=== FILE: AdvancedAI.lua (AI Module) ===\\n" + advancedAIScript + "\\n\\n=== FILE: README.md ===\\n" + readme;
+    const content = `=== CodeAssist Plugin - Version 1.0.0 ===
+
+=== FILE: CodeAssist.lua (Main Plugin Script) ===
+${pluginScript}
+
+=== FILE: AdvancedAI.lua (AI Module) ===
+${advancedAIScript}
+
+=== FILE: README.md ===
+${readme}`;
 
     // Create download
     const blob = new Blob([content], { type: 'application/octet-stream' });
